@@ -1,0 +1,101 @@
+================================================================================
+TO-DATA — Vector's build backlog & analyst journey
+================================================================================
+Owner: Vector — data analytics engineer (Dune / DuneSQL / Trino)
+Purpose: running list of protocols/topics to dashboard + pitch, and a log of
+         the journey. Goal = build sharp dashboards -> pitch teams -> paid work.
+Updated: 2026-09-13
+
+--------------------------------------------------------------------------------
+JOURNEY SO FAR (projects + status)
+--------------------------------------------------------------------------------
+Tenbin Labs (Ethereum) — tokenized FX/gold/commodities. Built: supply, holders,
+  fees, staking TVL, share price, APY (7D/30D), YPO. PITCHED (Yuki). Parked -
+  "we'll reach out if we have need." File: tenbin_labs.txt
+Tenor Finance (Base) — fixed-rate lending on Morpho Midnight. Built: collateral
+  supplied/present, borrow volume, fixed-rate APR. Net debt DEFERRED (needs
+  position-state). PITCHED. Parked. File: tenor_labs.txt
+Agua Vault / Reservoir (Ethereum) — own company product (Vector = CM+analyst).
+  Cracked full mechanism: fixed-rate accrual (10%), retained-surplus wedge,
+  Reservoir liquidity wallet, 5% instant fee. Built: deposit activity, share
+  price, APY, user net TVL, reservoir movement. File: agua_vault.txt
+
+LESSONS BANKED:
+  - Diagnose WHY a query is slow before adding filters; time-filter huge tables.
+  - Label metrics precisely (gross vol vs outstanding; supply vs TVL; principal
+    vs face). Don't ship numbers you can't validate.
+  - Reuse queries via query_XXXX (single source of truth), don't recompute.
+  - Segment protocol/MM/admin wallets out of "user" metrics.
+  - Cross-check on-chain numbers vs the app / explorer before shipping.
+
+--------------------------------------------------------------------------------
+TRENDING BACKLOG (things to data — Sept 2026, hottest + most buildable)
+--------------------------------------------------------------------------------
+Ranked for solo-buildable + hot narrative + a team that might pay.
+
+1. PERP DEX NEWCOMERS  [TOP PICK for paid odds]
+   Sector = ~26% of all perp volume, hottest in DeFi. Hyperliquid saturated;
+   white space = LIGHTER, edgeX, ASTER. Fully onchain, very rich:
+   volume, open interest, funding, trader PnL, liquidations, market share.
+   Pitch: teams fighting for mindshare want "we're winning" analytics.
+
+2. PREDICTION MARKETS  [BEST portfolio piece]
+   Kalshi ($22B) + Polymarket ($15B) = ~79% of sector. POLYMARKET is onchain
+   (Polygon), very queryable: markets, volume, unique traders, resolutions,
+   whale positioning. Endless "interesting angle" material. Recognizable name.
+
+3. TOKENIZED STOCKS / RWA  [exploding right now]
+   Tokenized stocks hit $3.1B record this month; RWA $5.4B->$34B; DTCC
+   tokenization w/ 50+ firms. Onchain issuance/holders/flows queryable.
+   Pitch: newer issuers needing to show traction.
+
+4. AI AGENT PAYMENTS / x402  [first-mover, higher effort]
+   Ties to the EIP-7702 / BundleBear thread. ~$73M across 176M txs, barely
+   dashboarded = own the category early. Caveat: data messier/thinner.
+
+5. STABLECOINS / STABLECHAINS  [head start from Reservoir]
+   New infra: Circle Arc, Tempo. Issuance/flow/velocity across chains.
+   Institutional money = teams that pay. Adjacent to existing rUSD/vault work.
+
+--------------------------------------------------------------------------------
+NEXT ACTION
+--------------------------------------------------------------------------------
+Pick ONE -> scope it: check Dune decoding coverage, map key contracts, draft
+metric plan (same open as Tenbin/Tenor/Agua). Leading candidates: a perp-DEX
+newcomer (Lighter/edgeX) for pay odds, or Polymarket for the portfolio.
+
+Dune premium window: ~13 days (as of 2026-09-13) -> move fast.
+
+--------------------------------------------------------------------------------
+CHOSEN DIRECTION (2026-09-13) — LIQUIDITY PROVISION (Solana)  [going here]
+--------------------------------------------------------------------------------
+Thesis: memecoins rising -> LP activity rising -> LP infra/tooling gaining.
+Deliberately NOT perp DEXs (too crowded). LP provision is under-analyzed.
+
+TARGETS:
+  METEORA (Solana) — largest DLMM. The LP layer under the memecoin flywheel:
+    DLMM + DAMM v2 + dynamic bonding curves (memecoin launches). Retail "LP Army".
+    MET token + team = pitchable. ANCHOR of the build.
+  HAWKFI (Solana) — automated DLMM position mgmt (rebalance, auto-compound) on
+    top of Meteora. Newer, same wave. Differentiated OVERLAY.
+
+THE ANGLE (see-what-others-don't): LP OUTCOMES, not DEX volume (everyone does vol).
+  - Do Meteora LPs actually make money? fees earned vs impairment, per pool.
+  - Best-paying pools; position survival/duration (memecoin pools esp.).
+  - Rebalance frequency + the HAWKFI EDGE: do auto-managed positions beat manual?
+  - Pool creation rate, LP concentration, fees to LPs vs protocol.
+
+FEASIBILITY CATCH (important):
+  Solana on Dune is INSTRUCTION-based, not event-log based (harder than our EVM
+  work). Parse program instructions + positional account decoding + inner ixs.
+  - Meteora: big/established -> likely decoded + in dex_solana spellbook. OK.
+  - HawkFi: newer -> likely UNDECODED -> raw instruction parsing. Higher effort,
+    but that's the white space.
+  - LP profitability / IL = hardest on DLMM (bin-based). Start tractable
+    (TVL, volume, LP fee revenue, pool/position counts, rebalances) -> build to PnL.
+
+NEXT STEP (feasibility probe before committing a day):
+  1. information_schema.tables LIKE '%meteora%' / '%hawk%'  -> what's decoded.
+  2. dex_solana.trades WHERE project LIKE '%meteora%'       -> spellbook coverage.
+  3. Grab Meteora DLMM + HawkFi program IDs from Solscan    -> anchors for raw parse.
+  Recommendation: anchor Meteora, run HawkFi as overlay once parseability is known.

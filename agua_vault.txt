@@ -1,0 +1,144 @@
+================================================================================
+AGUA VAULT (Tropical Water / Reservoir) — DUNE ANALYTICS PROJECT LOG
+================================================================================
+Created: 2026-09-08
+Analyst: Vector (CM + Data Analyst @ Reservoir)
+Status: IN PROGRESS — internal analytics (own company product)
+Goal: Deep analytics on the Agua Vault — deposits, depositors, yield, fees,
+      and sharp "see what others miss" angles.
+
+--------------------------------------------------------------------------------
+PROTOCOL OVERVIEW
+--------------------------------------------------------------------------------
+Agua Vault = "Opportunity Vault" by Tropical Water Management Corp, a higher-yield
+product within the Reservoir ecosystem (separate from core rUSD).
+Mechanic: Deposit USDC -> receive yield-bearing vault shares that compound every
+second (ERC-4626-style). Vault holds ACTUAL USDC (unlike wsrUSD/trUSD which
+mint/burn rUSD). Shares are a LayerZero OFT (bridgeable, yield syncs cross-chain).
+Withdrawals: fee-free after lockup; early exit pays a small fee. Early-exit fees
+accumulate in the vault as UNTRACKED SURPLUS USDC -> effectively extra yield to
+remaining/patient depositors.
+Docs: https://docs.tropicalwater.xyz/
+
+--------------------------------------------------------------------------------
+CONTRACT ADDRESSES
+--------------------------------------------------------------------------------
+Agua Vault — ETHEREUM (SOURCE chain; holds USDC, runs yield) — BUILD HERE
+  0xa98b4a70e17e55045cde4972b95bc2e8cec22a0f
+  (vault IS the share token / OFT; ERC-4626-style)
+Agua Vault — MONAD (destination/bridge only, IS_SOURCE_CHAIN=false)
+  0x2abc42250154752273a4560e875c858623f83ecc
+  NOTE: Monad likely NOT on Dune -> focus Ethereum where real deposits+yield live.
+Admin / Allocator (both chains): 0x086eb9C2B14dD657ae77D07dF9115A2F946CE327
+  (moves USDC to generate yield — watch it; its withdrawals are NOT user exits)
+USDC (Ethereum): 0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48
+
+Vault decoded on Dune by Vector. NEED: confirm schema name + event/column names
+(Deposit / Withdraw ERC4626 events; convertToAssets / totalAssets calls).
+
+--------------------------------------------------------------------------------
+ANALYSIS PLAN
+--------------------------------------------------------------------------------
+Foundation (build first):
+  1. Deposit activity & depositors — daily deposits/withdrawals, unique
+     depositors, new vs returning, TVL over time (assets under mgmt).
+Then:
+  2. Total yield paid out — realized APY from share price (convertToAssets) growth.
+  3. Fees generated — early-exit fees.
+Sharp / differentiated angles ("see what others don't"):
+  - EARLY-EXIT FEE = HIDDEN YIELD to stayers. Docs: fees accrue as untracked
+    surplus USDC. Quantify total + effective APY boost to lockup-completers.
+  - LOCKUP COHORT / UNLOCK LADDER — deposits grouped by lockup-end -> future
+    withdrawal-pressure view.
+  - STICKY vs MERCENARY — % exiting early (paying fee) vs waiting; retention by cohort.
+  - WHALE CONCENTRATION — deposit-size distribution, top-10 share.
+  - CAPITAL SOURCE — is deposited USDC fresh, from CEXs, or cannibalized from
+    other Reservoir products (rUSD/wsrUSD)?
+  - CROSS-CHAIN SPLIT — share supply bridged to Monad vs held on ETH (OFT).
+
+IMPORTANT ANALYSIS NOTES:
+  - TVL = totalAssets (AUM), NOT USDC balance of vault — allocator deploys USDC
+    out to earn yield, so raw USDC-in-vault understates TVL. Use totalAssets /
+    convertToAssets(totalSupply), or share supply x share price.
+  - User deposits/withdrawals come from the vault's Deposit/Withdraw EVENTS, not
+    raw USDC transfers (raw transfers conflate user flows with allocator moves).
+  - Share price (convertToAssets) growth = realized yield (same pattern as
+    Reservoir wsrUSD savingcoinv2_call_converttoassets).
+
+--------------------------------------------------------------------------------
+WORK LOG
+--------------------------------------------------------------------------------
+2026-09-08  Project started. Pulled protocol overview + addresses from docs.
+            Ethereum = source chain to build on. Vault decoded by Vector.
+            NEXT: confirm decoded event/column names, then build deposit activity
+            (metric #1): daily deposits/withdrawals, unique + new/returning
+            depositors, TVL over time.
+
+2026-09-08  METRIC #1 DONE — Deposit activity & depositors (Ethereum,
+            reservoir_vaults_ethereum.agua_global_carry_evt_*). Daily deposits/
+            withdrawals, unique + new/returning depositors, net flow, cumulative
+            net principal. USDC 6dec (assets/1e6). Withdrawals = RedemptionCompleted
+            + EarlyRedemption keyed on "user"; AdminWithdraw EXCLUDED (allocator).
+            RESULT: cumulative net principal = $10.82M vs app TVL $12.099M.
+            Depositor base tiny = whale/institutional (single deposits $250K-$2M).
+            GAP $1.279M = accrued yield + retained early-exit fees (NOT cooldown:
+            we only subtract COMPLETED exits, so cooldown-pending money is still
+            counted in-vault on both sides). NEXT: metric #2 (realized APY from
+            event-implied share price) + #3 (early-exit fees) to decompose the gap.
+            Sanity flag (Vector): $1.27M yield on a few-month-old vault looks high
+            for 10% APY -> if #2 prints ~40%+ APY the gap is NOT pure yield, hunt
+            for missing flow. Share price = assets/shares per event (decimals cancel
+            as a ratio; launch normalized to index 1.0).
+
+2026-09-13  MECHANISM FULLY RESOLVED — price, TVL wedge, Reservoir wallet.
+
+  CONTRACT: OpportunityOVault (0xa98b4a70...). Verified. USDC 6dec, shares 18dec.
+
+  SHARE PRICE (fixed-rate accrual, NOT NAV-float):
+   - Vault credits depositors a SET rate via RateUpdated event. Rate = per-second,
+     scaled 1e27. Decode APY: exp(rate/1e27 * 31536000) - 1.
+   - History (our vault only, filter contract): 15% at genesis -> 10% on 2026-06-15
+     (set by admin 0x086eb9...CE327). Flat 10% since. Only ONE change on record.
+   - Price = assets/shares * 1e12 (USDC 6dec / shares 18dec) ~= 1.02 USDC/share.
+   - PRICE SOURCE OF RECORD = rate-driven query wired to query_8647489 (rate log).
+     Validated vs on-chain convertToAssets (6 rows) - matched. Other price/TVL
+     call tables (totalassets, totalsupply, cumulativeratefactor, apy, currentrate)
+     are EMPTY on Dune -> no continuous on-chain feed; rate-rebuild is the source.
+   - Day-to-day APY off event-implied price is NOISY (sparse, irregular gaps,
+     impossible negatives). Delivered yield is a smooth ~10%. Use 30d window or the
+     rate itself, never point-to-point.
+
+  EVENTS (26 total). Exits: Withdraw event is EMPTY -> all exits via
+   RedemptionCompleted + EarlyRedemption. AdminWithdraw = allocator deploying USDC
+   to strategies (NOT a user exit; why vault raw USDC balance ~$1.6k).
+
+  TVL / NET DEPOSITED:
+   - Net contributed (ETH events) = Deposit - RedemptionCompleted - EarlyRedemption.
+   - App TVL (totalAssets) ~= $12.1M. Net deposited ~= $9.5M. Wedge ~= $2.5M.
+   - WEDGE = genuine RETAINED STRATEGY SURPLUS. Proven by conservation
+     (only deposits + strategy returns add assets; depositors capped at fixed 10%,
+     so excess = protocol surplus). Alternatives RULED OUT: no missing deposits;
+     Monad affects SHARE COUNT not USDC-in (deposits are ETH-source-chain);
+     Reservoir wallet fully tracked & net-flat (below).
+   - Actual strategy yield (the real >10% earned) is NOT on-chain observable -
+     contract only records the fixed 10% credited. Only proxies: surplus growth,
+     or allocator USDC round-trips. Protocol pockets an unquantified spread.
+
+  RESERVOIR LIQUIDITY WALLET = 0x3063C5907FAa10c01B242181Aa689bEb23D2BD65
+   - Protocol market-maker wallet (team-confirmed): deposits/redeems to provide
+     instant liquidity in/out for users. Fee-exempt (redeems at 0 fee).
+   - ~99.99% of ALL EarlyRedemption volume ($8.12M) is THIS wallet. Real-user
+     early exits ~= $2.48 total -> USERS ARE 100% STICKY; churn is protocol ops.
+   - Fully tracked: raw USDC transfers == deposit/redeem event amounts to the cent
+     (deposited $8.095M, redeemed $8.122M, net ~= -$27k). NOT a source of the wedge.
+   - SEGMENTATION RULE: user-facing metrics EXCLUDE this wallet AND admin/allocator
+     0x086eb9...CE327. Real user net TVL ~= $9.55M.
+
+  FEES: instant/early redemption fee = 5% of TOTAL redeemed value (principal+yield),
+   admin-configurable (SetEarlyRedemptionFee). Currently effectively 0 for the
+   Reservoir wallet. Total user fees collected to date ~= $0.13 (June test txs).
+   -> "early-exit fee as hidden yield" angle is DEAD (no real early exits).
+
+  BUILT/READY: metric #1 (deposit activity, done); share price + APY (rate-driven,
+   query_8647489); Track1 user net TVL (Reservoir excluded); Track2 Reservoir
+   wallet movement. Point-in-time surplus needs current app TVL (moving target).

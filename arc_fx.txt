@@ -1,0 +1,67 @@
+================================================================================
+ARC ON-CHAIN FX — DEX-based (Aero CL) FX volume dashboard
+================================================================================
+For: Vector. Purpose: track USDC<->EURC (and later local-stablecoin) FX on Arc.
+Dune-first; cross-check with Bitquery Arc tools. Sibling to arc_morpho.txt.
+Updated: 2026-09-26. Status: Stage 0 done (factory decoded), building Stage 1.
+
+--------------------------------------------------------------------------------
+0. THE FINDING (why DEX, not StableFX)
+--------------------------------------------------------------------------------
+Circle StableFX (RFQ = Request for Quote; MM quotes off-chain, only the trade
+settles on-chain via PvP escrow) is API-abstracted and NASCENT — no dominant
+on-chain settlement contract shows up in EURC flow yet. So real, trackable
+on-chain FX on Arc today = DEX pools (Aerodrome concentrated-liquidity = "CLPool").
+=> Build FX off the Aero CL pools now. Keep StableFX on WATCH (re-poll maturity).
+
+Evidence (Bitquery arc, EURC receivers): biggest EURC venue = CLPool
+0xbe080ac37ad1305dfcc9521f5e6f68cfdc41b7fa (EUR88M, 9270 swaps). Also a Safe
+0x19cbc83ded190616d819555c3b42b3b3507fc41e (EUR85M, 548 large txns = MM/OTC desk).
+
+--------------------------------------------------------------------------------
+1. ANCHORS (Arc)
+--------------------------------------------------------------------------------
+Aero CL FACTORY   0xb89df768af2cfe637ceb352c587fe8edaf491d03  (DECODED on Dune ~Sep16)
+  -> PoolCreated event: token0, token1, tickSpacing, pool  (= dynamic pool list)
+CLPool Swap event  topic 0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67
+  fields: sender(idx), recipient(idx), amount0 int256, amount1 int256,
+          sqrtPriceX96 uint160, liquidity uint128, tick int24
+  -> signed amounts give BOTH volume and direction; ratio = FX rate
+TOKENS  USDC (native) 0x3600000000000000000000000000000000000000  (6 dec)
+        EURC          0xbEf5f6d51CB62b58e6A8f77868681825C6fe21c1  (6 dec)
+
+--------------------------------------------------------------------------------
+2. WHAT WE TRACK
+--------------------------------------------------------------------------------
+1. FX volume over time (daily + cumulative), EURC<->USDC.
+2. Net direction: USDC->EURC vs EURC->USDC (euro vs dollar demand).
+3. Swap count + avg size (retail vs institutional).
+4. Per-pool / per-pair split (widen to other stablecoin pairs as they list).
+v2: pool liquidity/TVL (Mint/Burn), on-chain FX rate vs off-chain EUR/USD.
+
+--------------------------------------------------------------------------------
+3. BUILD STAGES
+--------------------------------------------------------------------------------
+0. DECODE (done): Aero CL factory 0xb89df768 decoded on Dune (~Sep 16, 2026).
+1. POOL MAP: from factory PoolCreated -> pool,(token0,token1,tickSpacing);
+   filter pairs = EURC x USDC (later any cross-currency stable pair).
+2. SWAPS: CLPool Swap events joined to pool map. Per swap: USD size (USDC leg),
+   direction (sign), rate (amount ratio). Scope by pool set to stay light.
+3. METRICS: the section-2 charts. Materialize the heavy swap scan if needed.
+4. VALIDATE: cross-check totals vs Bitquery arc DEX trade tools before shipping.
+
+--------------------------------------------------------------------------------
+4. NOTES
+--------------------------------------------------------------------------------
+- Decimals: USDC 6, EURC 6. USD value ~= |USDC leg|. Direction from amount signs.
+- If Dune has arc.logs, can pull Swap by topic w/o decode; else use decoded tables.
+- StableFX WATCH: re-check for a live settlement contract periodically; add as a
+  2nd FX source when it has real volume. CPN-on-Arc = "coming soon" (watch too).
+- Cross-check discipline (Agua/Meteora rule): validate Dune vs Bitquery, and vs
+  any Aero/Arc app UI, before publishing.
+
+--------------------------------------------------------------------------------
+NEXT STEP
+--------------------------------------------------------------------------------
+Stage 1: locate the decoded PoolCreated table (info_schema search), build the
+EURC/USDC pool map, then Stage 2 swap volume. Materialize if the swap scan is heavy.

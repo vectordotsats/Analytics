@@ -1,0 +1,145 @@
+================================================================================
+TENOR FINANCE — DUNE DASHBOARD PROJECT LOG
+================================================================================
+Created: 2026-09-01
+Analyst: Vector
+Status: IN PROGRESS — build to pitch
+Goal: Build a professional, sophisticated Dune dashboard for Tenor Finance
+      to pitch to the team for a reward / paid engagement.
+
+--------------------------------------------------------------------------------
+PROTOCOL OVERVIEW
+--------------------------------------------------------------------------------
+Tenor Finance — non-custodial FIXED-RATE, FIXED-TERM lending/borrowing, on Base.
+Built ON TOP OF Morpho (Morpho Blue + Morpho Midnight fixed-rate layer).
+Seed round led by Variant. MORPHO rewards active for lenders. Has an OTC section
+for long-tail / custom-term markets.
+App:  https://app.tenor.finance/markets
+Docs: https://docs.tenor.finance/  (addresses page confirmed UP TO DATE by founder)
+Explorer (whole Midnight, built by Tenor): https://midnightscan.org/
+
+ARCHITECTURE / KEY INSIGHT
+- Tenor markets ARE Morpho market IDs. Filtering by market ID alone would ALSO
+  capture other curators (Steakhouse, Gauntlet, etc.) in the same Morpho market.
+- To ISOLATE Tenor activity: key on Tenor's OWN routing contracts, not market ID.
+- FOUNDER CONFIRMED (TG): lend & borrow actions route via the TENOR ADAPTER
+  contract, via BUNDLER3. Tenor router shows on midnightscan.org/activity;
+  bundler3 on /mempool.
+- Morpho Midnight is Morpho's fixed-rate protocol layer; NOT exclusive to Tenor
+  (anyone can build on it). MidnightScan totals (~$3M deposits / ~$2M borrows)
+  = ALL of Midnight, not Tenor alone. Tenor is a subset -> good sanity ceiling.
+
+--------------------------------------------------------------------------------
+CONTRACT ADDRESSES (all on BASE)
+--------------------------------------------------------------------------------
+TENOR ROUTING (isolation keys — every Tenor lend/borrow routes here):
+  TenorAdapter          0x5675892d48828872fbFD2720489f98b42f48138F
+  Bundler3              0x6BFd8137e702540E7A42B74178A4a49Ba43920C4
+  AuthorizationAdapter  0xDbb74BF80bD05a1959C8f21e2b821dcFEd87104C
+
+MORPHO CORE (Base):
+  Morpho Midnight       0xAdedD8ab6dE832766Fedf0FaC4992E5C4D3EA18A
+  Midnight Mempool      0xdD6DCE32e21f7b020898a8258dA37355b4017993
+  Morpho Blue           0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb
+
+THREE MARKETS (Base) — market IDs = Morpho market IDs:
+  cbBTC/USDC  id 0x9103c3b4e834476c9a62ea009ba2c884ee42e94e6e314a26f04d312434191836
+    Collateral Vault 0xf6a70085b7f79FA76B04EbF7A2D7D87C3c5c04BC
+    Open Term Vault  0x3aE6e4D46A49e493Bf7a2CeC0313334791A23B1c
+    Oracle           0x663BECd10daE6C4A3Dcd89F1d76c1174199639B9
+  WETH/USDC   id 0x8793cf302b8ffd655ab97bd1c695dbd967807e8367a65cb2f4edaf1380ba1bda
+    Collateral Vault 0xe690a58EF52854513462745237F6A213a0d54dF1
+    Open Term Vault  0xA02565dEF276e195644044Bf01faE02769Cac3ed
+    Oracle           0xFEa2D58cEfCb9fcb597723c6bAE66fFE4193aFE4
+  cbETH/WETH  id 0x84662b4f95b85d6b082b68d32cf71bb565b3f22f216a65509cc2ede7dccdfe8c
+    Collateral Vault 0xFa750DD0099eAdB72d401244De73ce7B89edf90F
+    Open Term Vault  0x29f5cD67E543db9aC652eF9327009Db8Df1FD943
+    Oracle           0xB03855Ad5AFD6B8db8091DD5551CAC4ed621d9E6
+
+CHAINLINK PRICE FEEDS (Base):
+  BTC/USD  0x64c911996D3c6aC71f9b455B1E8E7266BcbD848F
+  ETH/USD  0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70
+  USDC/USD 0x7e860098F58bBFC8648a4311b374B1D669a2bc6B
+  cbETH/USD 0x868a501e68F3D1E89CfC0D22F6b22E8dabce5F04
+
+--------------------------------------------------------------------------------
+DASHBOARD METRIC PLAN (draft)
+--------------------------------------------------------------------------------
+Isolate Tenor via TenorAdapter / Bundler3 routing, then per market:
+  TVL / deposits / borrows (fixed-rate) over time
+  Borrow & lend volume, tx count, unique users
+  Fixed rates offered / achieved (the differentiator vs variable Morpho)
+  Maturities / terms distribution
+  Market breakdown (cbBTC/USDC, WETH/USDC, cbETH/WETH)
+  Liquidations / risk
+Sanity ceiling: Tenor totals <= MidnightScan whole-Midnight totals.
+
+--------------------------------------------------------------------------------
+DATA AVAILABILITY (Dune) — TBD
+--------------------------------------------------------------------------------
+- Morpho is well covered on Dune (morpho_blue_base spellbook) -> core lending
+  metrics may need NO decode, filtered to Tenor's markets + routing.
+- Midnight/mempool fixed-rate layer is newer -> may need decoding.
+- NEXT: confirm TenorAdapter activity exists on base.transactions; check
+  morpho_blue_base spellbook coverage; decide decode vs spellbook path.
+
+--------------------------------------------------------------------------------
+WORK LOG
+--------------------------------------------------------------------------------
+2026-09-01  Project scoped. Researched protocol, pulled full contract map + 3
+            market IDs from docs (founder-confirmed current). Founder confirmed
+            routing via TenorAdapter + Bundler3. Created this file.
+
+2026-09-06  KEY DATA SOURCES + ISOLATION (all Base)
+            - Tenor collateral/borrow calls route via TenorAdapter
+              0x5675892d48828872fbFD2720489f98b42f48138F (traces), Bundler3
+              0x6BFd8137e702540E7A42B74178A4a49Ba43920C4. Adapter decoded as
+              schema tenor_base (e.g. tenor_base.tenoradapter_call_*).
+            - Morpho Midnight decoded (by @wintermuteresearch) as
+              morpho_midnight_base.midnight_* . USE THE CALL TABLES: the Take
+              EVENT view (midnight_evt_take) is BROKEN on Dune (args_17 column
+              bug); midnight_call_take FUNCTION works and is richer.
+            - BORROW = the "Take" action (midnight_call_take), NOT withdraw.
+              Fields: output_0 = loan PRINCIPAL, units = debt FACE (principal+
+              interest to maturity), offer.market.maturity = term,
+              offer.tick = encoded fixed RATE, offer.buy = side, offer.reduceOnly.
+            - TENOR ISOLATION KEY (clean!): offer.group is prefixed
+              0x74656e6f72 = ASCII "tenor". Filter takes:
+              substr(json_extract_scalar(offer,'$.group'),1,12)='0x74656e6f72'.
+              ~1259 Tenor takes of 3121 total (~40% of Midnight take-flow).
+              reduceOnly=true = position reductions (only 28) -> exclude for opens.
+            - PRICES: reusable Base price query = query_8595990 (WETH/cbBTC/cbETH
+              daily USD, forward-filled). USDC treated as $1.
+            - Market labels via collateralParams[0].token + loanToken:
+              cbBTC(0xcbb7c0..)->cbBTC/USDC ; WETH(0x4200..)+USDC loan->WETH/USDC ;
+              cbETH(0x2ae3f1..)->cbETH/WETH. USDC 6dec, WETH/cbETH 18dec, cbBTC 8dec.
+
+            BUILT + WORKING (Tenor, Base):
+            - Collateral SUPPLIED per market (native+USD, daily+cumulative), from
+              tenoradapter_call_midnightsupplycollateral.
+            - Collateral PRESENT (net: supplied - withdrawn) per market, USD.
+              VALIDATED: <= Midnight total collateral (34.8 cbBTC ceiling). SOLID.
+            - Borrow VOLUME per market (gross, opens) from midnight_call_take
+              output_0, Tenor-tagged, reduceOnly=false. Cumulative. SOLID
+              (label "cumulative borrow volume", rollover-inclusive).
+
+            DEFERRED (do NOT ship as-is): NET OUTSTANDING DEBT.
+            Flow reconstruction (opens - repays) does NOT give a correct point-in-
+            time balance here - orderbook model has market-maker offers, partial
+            fills, rollovers, maturity settlement, units-vs-principal. Our attempt
+            gave ~$2.8M Tenor which EXCEEDS whole-Midnight $2.63M (MidnightScan,
+            no router filter) = impossible. Correct source = POSITION STATE
+            (midnight debt view / per-position ledger), same as MidnightScan.
+            Treat as a dedicated v2 build, not a one-query patch.
+
+            VALIDATION ANCHORS: MidnightScan (midnightscan.org) filter Router=Tenor.
+            "Total borrowed $2.63M" at top = ALL Midnight (Morpho+Tenor+Direct).
+            Events there: Take(=borrow), Repay, Supply/Withdraw collat.
+
+            ETHEREUM: Tenor Ethereum deployment was dust/testing (one wallet
+            0x1efc..97e5) as of early Sept; founder said ETH launches Tue. Build
+            Base-only for now; union ETH when real volume lands.
+
+            NEXT: rate tracking (avg fixed APR over time, from take tick/units) +
+            maturity ladder (outstanding by expiry) - both off midnight_call_take.
+            Then fees (midnight claimcontinuousfee/claimsettlementfee).

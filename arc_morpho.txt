@@ -1,0 +1,156 @@
+================================================================================
+ARC x MORPHO — Circle's institutional L1 and its credit layer
+================================================================================
+For: Vector. Purpose: understand the machine before charting it. Get metrics out
+early on a hot, under-dashboarded launch -> build reputation -> pitch curators /
+Earn-Kit fintechs for paid work. Chain: Arc (Circle L1, chain ID 5042). Updated: 2026-09-17.
+Status: SCOPING -- addresses gathered (sec 4b); Dune-coverage gate not yet checked.
+
+--------------------------------------------------------------------------------
+0. THE ONE IDEA
+--------------------------------------------------------------------------------
+Arc = Circle's own Layer 1, purpose-built as the settlement rail for institutions
+moving stablecoins + tokenized assets. Morpho is its CREDIT LAYER from day one --
+not a tenant, the default money market. A brand-new institutional chain with a
+lending firehose = huge data white space because NOBODY has dashboards yet.
+  => The lane (same as Meteora/Agua): chart LENDER/DEPOSITOR OUTCOMES and whether
+     the growth is REAL, not vanity TVL headlines everyone will repost.
+
+--------------------------------------------------------------------------------
+1. ARC — what it is (mainnet live 2026-09-16)
+--------------------------------------------------------------------------------
+- Layer 1 for financial markets, real-time money movement, agentic (AI) payments.
+- GAS PAID IN USDC. No volatile native token to hold. An ARC token exists (10B
+  minted) but it's for security/utility/governance only -- fees stay in USDC.
+- Sub-second, deterministic finality. Opt-in confidential transactions (WIP).
+- Native USDC + EURC + tokenized RWAs (BlackRock BUIDL, Circle USYC).
+- StableFX: 24/7 programmable on-chain FX (USDC<->EURC), near-instant settlement.
+- Validators are PERMISSIONED, Circle-run set: BlackRock, DTCC, Galaxy, ICE,
+  Mastercard, MoneyGram, SBI, Standard Chartered, Sumitomo, Visa, Worldpay.
+- 100+ apps at launch. DeFi live: Aave (new V4 market), Morpho, Uniswap, Aero, fomo.
+READ IT AS: Circle building the rail where institutions settle stablecoins + RWAs.
+Deposits are likely to skew INSTITUTIONAL, not retail -- shapes every metric.
+
+--------------------------------------------------------------------------------
+2. MORPHO x ARC — the integration
+--------------------------------------------------------------------------------
+Morpho is "live on Arc from day one as its credit infrastructure" = the chain's
+lending/borrowing layer. Context: Morpho ~$2.8B USDC deposits overall (Jul 2026);
+on Base ~$1.4B active USDC loans + $500M deposits via Coinbase Lend (the template).
+
+HOW EACH SIDE WINS:
+  ARC gets   -> instant, credible DeFi credit (earn yield / borrow against assets)
+                without Circle building a lender. Makes the chain useful on day 1.
+  MORPHO gets-> firehose of institutional USDC/EURC + RWA collateral on a chain
+                Circle funnels partners into. New TVL surface, less crowded than
+                Base/Ethereum. First-mover on the institutional lane.
+
+LIVE PRODUCTS:
+  - Arc Earn Kit    = API for fintechs to embed curated Morpho Vaults in their apps.
+  - Pulsar Money Earn = USDC + EURC vaults CURATED BY STEAKHOUSE FINANCIAL.
+  - SafePal Earn    = hardware-wallet USDC yield via Morpho.
+  - Variable-rate lend/borrow now at app.morpho.org.
+COMING:
+  - Morpho Midnight = fixed-rate lending on Arc (same tech as Tenor -- we know it).
+  - Circle Mint integration = borrow against digital assets e.g. cirBTC.
+
+--------------------------------------------------------------------------------
+3. THE METRIC ANGLES (our lane -- outcomes + "is it real", not headline TVL)
+--------------------------------------------------------------------------------
+Ranked by white-space + buildability:
+  A. ARC DAY-ONE DEPOSIT CURVE = Morpho TVL on Arc from block 0. Nobody has this.
+     Own the "how fast is Arc filling" chart. Cohort of first depositors.
+  B. IS THE GROWTH REAL? = organic deposits vs incentive-farmed / circular flows.
+     Segment institutional vs retail wallets. The see-what-others-don't angle.
+  C. EURC CREDIT = euro-stablecoin lending is barely charted anywhere. Pulsar's
+     EURC vault = clean, uncrowded story. Differentiator.
+  D. RWA-AS-COLLATERAL = BUIDL / USYC backing Morpho borrows = the institutional-
+     DeFi thesis made visible. High-signal, on-narrative.
+  E. VAULT / CURATOR FLOWS = Steakhouse USDC+EURC vault deposits, utilization,
+     supply vs borrow APY, rate spreads. Curator performance.
+  F. EARN-KIT ADOPTION = which fintechs embed via the API, deposits they route.
+  G. UTILIZATION + RATES per market = borrow demand vs idle supply (label precisely:
+     deposits vs active loans vs utilization -- Agua/Tenor lesson).
+
+--------------------------------------------------------------------------------
+4. FEASIBILITY CATCH (decide BEFORE committing a day) -- the make-or-break
+--------------------------------------------------------------------------------
+Arc is a BRAND-NEW L1. Core question: is Arc decoded / indexed on Dune yet?
+  - If YES (or in a spellbook) -> move fast, own the category while it's empty.
+  - If NO -> that's the white space AND the blocker. Options: wait for Dune to add
+    Arc, or go raw (RPC / other indexer). Don't sink a day blind.
+Morpho contracts on Arc: standard Morpho Blue + MetaMorpho vaults -> if decoded on
+other chains, decoding likely portable once Arc is indexed. Confirm, don't assume.
+
+PROBE STEPS (mirror the Meteora feasibility check):
+  1. Is Arc a supported chain on Dune at all? Check chain list / any arc_* schema.
+  2. information_schema.tables for morpho on Arc; check Morpho Blue + vault decode.
+  3. Grab Morpho Blue + Pulsar/Steakhouse vault addresses on Arc (from app.morpho.org
+     / Arc explorer) -> anchors.
+  4. Cross-check any number vs app.morpho.org before shipping (validate ground truth).
+
+--------------------------------------------------------------------------------
+4b. CONTRACT ADDRESSES (Arc mainnet, chain ID 5042, gas=USDC) -- BUILD ANCHORS
+--------------------------------------------------------------------------------
+Source: Morpho canonical deployment registry (SDK PRs #1092/#1088) + Arc docs.
+NOTE: Morpho Blue is the MASTER ANCHOR -- every market action (create/supply/
+borrow/repay/liquidate) emits from this ONE contract. Decode it = entire lending
+dataset from block 0. Vaults are separate ERC-4626 contracts (one each).
+
+MORPHO (confirmed):
+  Morpho Blue  *MASTER*        0x2371e134b1b503303e6830d426eeca537e406ff5
+  Public Allocator (Vault V2)  0x4c2ff4D792d0a03A0e461e4B9B00Bc812A0147C2
+  Midnight (fixed-rate)        0x208786922BE56fDE2D1Fa60e6b9eC5D723e8d7b0
+    midnightBundles            0x3609525024c88f794CBE09e4832810E2bd737beC
+    midnightBlueBuyCallbackFac 0x9bD11e1EC7bf3520896F8e3e63d4B70f8d6d177E
+    midnightMempool            0x26bded5Fb01373CE875dEa14E52799D04C839C1A
+    ecrecoverRatifier          0xA3B53aDe6668b6ceC03a9E56a993B47034F43715
+    ecrecoverAuthorizer        0xe1dccAdc10c35AE9e2207059B233fE5c634CF20f
+    setterRatifier             0x3915156EBFC246Ee9aC3236af561546B7D9D924c
+  VaultBundlesV1               0x76c1dEefAe48523E14903085081Bda2999450b68
+  BlueBundlesV1                0x3c4BaE2a2Ef708ddaAE40A0b66623afE44eF4A7F
+  VaultExitBundlesV1           0x2095B5974101A94B726593f0E81d177B058849C7
+
+TOKENS / SYSTEM (Arc docs):
+  USDC (native, 6 dec)         0x3600000000000000000000000000000000000000
+  EURC (6 dec)                 0xbEf5f6d51CB62b58e6A8f77868681825C6fe21c1
+  CCTP TokenMessengerV2        0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d
+  GatewayWallet                0x77777777Dcc4d5A8B6E418Fd04D8997ef11000eE
+  Multicall3                   0xcA11bde05977b3631167028862bE2a173976CA11
+  Permit2                      0x000000000022D473030F116dDEE9F6B43aC78BA3
+
+STILL TO GRAB (from ArcScan / app.morpho.org/arc -- ~30s each):
+  - Vault V2 FACTORY (enumerate all vaults via its Create event). Arc = Vault V2,
+    NOT MetaMorpho v1.1 -> find the V2 factory.
+  - Adaptive Curve IRM (read off any Arc market's createMarket params).
+  - Steakhouse USDC + EURC vault addresses (each = own ERC-4626).
+
+THE GATE: Dune decoding only works if Dune has INGESTED Arc as a chain. If Arc
+isn't in Dune's chain list yet, ABIs have nothing to decode against. Check first.
+
+--------------------------------------------------------------------------------
+5. PITCH TARGETS (who might pay)
+--------------------------------------------------------------------------------
+- CURATORS (Steakhouse Financial) -> want "our vaults are winning / safe" analytics.
+- EARN-KIT FINTECHS (Pulsar Money, SafePal, new embedders) -> small teams needing
+  traction dashboards = same play as Tenbin/Tenor.
+- Broader Arc/Circle ecosystem mindshare content on X (@vectordotsol) to get known.
+
+--------------------------------------------------------------------------------
+6. OPEN QUESTIONS / TO VERIFY
+--------------------------------------------------------------------------------
+- "$200M deposits in a day" (Vector's cited figure) NOT in Circle/Morpho official
+  posts or The Block coverage as of 2026-09-17 -> treat as UNCONFIRMED X chatter.
+  Verifying it on-chain is itself a strong first dashboard.
+- Exact Morpho markets/vaults live on Arc + their addresses.
+- Dune Arc coverage status (the gating item).
+
+--------------------------------------------------------------------------------
+NEXT STEP
+--------------------------------------------------------------------------------
+Run the Section 4 feasibility probe FIRST. If Arc is indexed: open on metric A
+(day-one deposit curve) + B (is it real), pool/vault-level, validate vs the Morpho
+app. If not indexed: note the blocker, decide wait vs raw, don't commit a full day.
+
+Sources: morpho.org/blog/morpho-is-live-on-arc-as-its-credit-infrastructure ;
+circle.com Arc mainnet press release (2026-09-16) ; theblock.co Arc launch coverage.

@@ -1,0 +1,142 @@
+================================================================================
+METEORA DLMM DASHBOARD — BUILD ROADMAP  ("Are LPs actually profitable?")
+================================================================================
+Analyst: Vector. Chain: Solana. Started: 2026-09-15.
+Goal: the definitive LP-OUTCOMES dashboard for Meteora DLMM. Not another volume
+      leaderboard — build the foundation so tight it tallies, then layer the
+      thing nobody shows: whether liquidity providers actually make money.
+Pitch targets: Meteora (MET team) / HawkFi.
+See also: meteora_primer.txt (mechanics), to-data.txt (backlog).
+
+--------------------------------------------------------------------------------
+GUIDING PRINCIPLES (hold the line every phase)
+--------------------------------------------------------------------------------
+- ONE CLOCK: every column shares a window, or is explicitly labeled (_24h/_7d/all).
+- RECONCILE: fees_generated = fees_claimed + fees_unclaimed (same window). Never
+  let claimed silently exceed generated.
+- DEFINE FIRST: one-line definition per column (what / grain / window) before SQL.
+- VALIDATE: check every metric vs Meteora's app on 2-3 reference pools.
+- SCOPE: always filter by pool + time (Solana = billions of rows).
+- POOL-LEVEL before POSITION-LEVEL. Earn your way to the hard grain.
+- GATE: don't start a phase until the previous one validates.
+
+--------------------------------------------------------------------------------
+PHASE 0 — SETUP & FEASIBILITY  [in progress]
+--------------------------------------------------------------------------------
+[x] Confirm decoded schemas: meteora_pools_solana (DAMM), meteora_version_dlmm
+    (DLMM), dex_solana.trades (~3.9B meteora swaps).
+[ ] Pull meteora_version_dlmm TABLE + COLUMN list. THE UNBLOCK. Find fields for:
+    bin id / price, liquidity amount, active bin, position, owner, pool, fees.
+[ ] Pick 2-3 REFERENCE POOLS (1 hot memecoin, 1 stable-ish) for validation.
+[ ] Grab DLMM program ID (Solscan) for any raw parsing.
+GATE: know exactly which tables carry bins, liquidity, fees, owner.
+
+--------------------------------------------------------------------------------
+PHASE 1 — FOUNDATION: fees & volume, reconciled  [the "better than the ref" base]
+--------------------------------------------------------------------------------
+Goal: pool-level table that TALLIES (fixes the claimed>generated inconsistency).
+Cols: pool, token pair, bin step, created; volume, fees_generated, fees_claimed,
+      fees_unclaimed(=gen-claimed), for aligned windows (24h / 7d / all).
+Data: dlmm swap + claimfee + liquidity tables; token metadata.
+Difficulty: LOW-MED. Validate vs app. 
+DELIVERABLE: "Top Pools" table where every row reconciles.
+
+--------------------------------------------------------------------------------
+PHASE 2 — TOP PROVIDERS (LP-level)
+--------------------------------------------------------------------------------
+Goal: who provides the liquidity, and how concentrated is it.
+Cols: LP wallet, liquidity supplied, fees earned, # positions, # pools.
+      + LP concentration (top-10 share of liquidity / of fees).
+Data: liquidity events w/ owner/position; fee claims w/ owner.
+Difficulty: MED (needs owner grain). GATE: confirms how far to profitability.
+DELIVERABLE: "Top LPs" table + concentration stat.
+
+--------------------------------------------------------------------------------
+PHASE 3 — LP BEHAVIOR (tractable differentiators)
+--------------------------------------------------------------------------------
+- CLAIM RATIO (claimed/generated): active/auto-compounding vs passive/abandoned.
+- POOL CREATION / GRADUATION pulse (memecoin-launch signal; DBC if in scope).
+- POSITION LIFESPAN / churn; locked LP if present.
+Difficulty: LOW-MED. DELIVERABLE: behavior panel (signals nobody shows).
+
+--------------------------------------------------------------------------------
+PHASE 4 — TIME-IN-RANGE  [HERO METRIC]
+--------------------------------------------------------------------------------
+Goal: % of time a pool's liquidity is IN-RANGE (earning) vs OUT (idle).
+Method: derive ACTIVE BIN over time (from swaps) vs LP BIN RANGES (from liquidity
+        events); compute overlap per time slice. Pool-level first.
+Difficulty: MED-HIGH (bin reconstruction). This is the standout.
+DELIVERABLE: time-in-range % per pool + trend.
+
+--------------------------------------------------------------------------------
+PHASE 5 — DYNAMIC-FEE CAPTURE & BIN CONCENTRATION
+--------------------------------------------------------------------------------
+- FEE CAPTURE: fees earned per $ liquidity, volatile vs calm windows (the DLMM edge).
+- BIN CONCENTRATION: how tightly LPs cluster around price (risk appetite).
+Difficulty: MED-HIGH. DELIVERABLE: efficiency + concentration views.
+
+--------------------------------------------------------------------------------
+PHASE 6 — LP PROFITABILITY / PnL  [HOLY GRAIL — last]
+--------------------------------------------------------------------------------
+Goal: per-position  fees earned - impermanent loss = did this LP profit?
+Method: reconstruct each position's bins + price path over time; value in vs out.
+Difficulty: HIGH. Only after 1-5 validate. Start with a single reference position.
+DELIVERABLE: LP net PnL distribution — the headline nobody has.
+
+--------------------------------------------------------------------------------
+PHASE 7 — ASSEMBLY & PITCH
+--------------------------------------------------------------------------------
+- Compose dashboard (KPIs -> pools -> LPs -> behavior -> range -> PnL).
+- End-to-end validation pass vs app.
+- Short write-up (Dune format). Pitch Meteora / HawkFi.
+
+--------------------------------------------------------------------------------
+STATUS LOG
+--------------------------------------------------------------------------------
+2026-09-15  Roadmap created. At Phase 0: need meteora_version_dlmm columns +
+            reference pools. Reference dashboard seen (@restaji_ii "Top Claimed
+            Fees") - proves DLMM fee data exists; its claimed>generated bug is
+            what Phase 1 fixes. dex_solana.trades = swap/volume backbone.
+
+================================================================================
+PIVOT — 2026-09-19: this is an LP POOL SCREENER ("spot your target pool")
+================================================================================
+Perspective = POOL, not per-EOA (can't track every wallet; LPs scan pools).
+HERO METRICS: TOTAL APR (swap fees + reward emissions) + APR MOMENTUM (heating
+up or cooling?). TVL demoted to a hidden INPUT (denominator for APR/turnover
+only) — never a headline column. "No one cares about raw TVL, it's everywhere."
+
+SCREENER COLUMNS (clean, scannable, sortable):
+  pair | fees_24h | fees_all_time | fee_APR | reward_APR | TOTAL_APR |
+  APR_momentum (7d trend) | turnover (vol/TVL) | net_LP_flow_24h |
+  pool_age / new-flag | LP_count / concentration
+  + TIME-IN-RANGE (centerpiece, hard — build toward it, not first)
+
+BUILD ORDER (foundation done: volume ✅, TVL/liquidity ✅):
+  1b. FEES — meteora_solana.lb_clmm_evt_swap: LP fee per swap = the REAL rate
+      (fee/amountIn, never an assumed %) × amount_usd from dex_solana.trades.
+      Aggregate to pool+window (24h / 7d / all). generated vs claimed reconcile.
+  -> fee_APR = fees / liquidity, windowed (24h annualized, 7d).
+  -> REWARDS — lb_clmm_evt_claimreward / fundreward -> reward_APR.
+  -> TOTAL_APR = fee_APR + reward_APR                 [HERO]
+  -> APR_MOMENTUM = 7d APR trend / sparkline          [HERO]
+  -> turnover, net_LP_flow_24h (add/removeliquidity), pool_age, LP_count.
+  -> TIME-IN-RANGE (bin reconstruction; hard) — centerpiece, last of core.
+  -> assemble screener -> validate vs Meteora app -> pitch Meteora/HawkFi.
+
+DATA SOURCES LOCKED:
+  volume + pair : dex_solana.trades (project='meteora', version_name='dlmm';
+                  pool = project_program_id; amount_usd; vaults = token_*_vault).
+  balances/TVL  : solana_utils.latest_balances (address = vault, token_balance).
+  prices        : prices_solana.minute (JOIN on contract_address_varchar = base58
+                  mint; NOT contract_address which is a 0x hash). latest per mint.
+  fees          : meteora_solana.lb_clmm_evt_swap (fee, amountIn, protocolFee,
+                  hostFee; swapForY = input-token side).
+  rewards       : meteora_solana.lb_clmm_evt_claimreward / _fundreward.
+  liquidity flow: meteora_solana.lb_clmm_evt_addliquidity / _removeliquidity.
+
+PERF RULE (learned): raw swap table = huge, pool filter does NOT prune (time
+does). Aggregate ALL pools over a bounded window in one pass; never scan per-pool.
+Curated dex_solana.trades is pruned + USD-priced -> use for volume/APR base.
+
+STATUS: volume ✅, TVL ✅ (vault-balance photograph). NEXT = 1b fees -> APR.

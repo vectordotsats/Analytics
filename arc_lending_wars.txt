@@ -1,0 +1,176 @@
+================================================================================
+ARC LENDING WARS — Morpho vs Aave V4 (+ "who uses Arc, and where most")
+================================================================================
+For: Vector. Purpose: one dashboard comparing Arc's two day-one lenders on every
+major angle, plus an Arc-wide "where does capital actually sit" leaderboard.
+Portfolio centerpiece + pitchable to Morpho/Aave curators AND Circle ecosystem.
+Sibling to arc_morpho.txt (Morpho-only deep dive), arc_fx.txt (DEX FX).
+Chain: Arc (Circle L1, ID 5042, gas=USDC). Updated: 2026-09-28. Status: SCOPING
+-- anchors gathered, query plan drafted. Decode gate = Vector to confirm on Dune.
+
+--------------------------------------------------------------------------------
+0. THE GOAL
+--------------------------------------------------------------------------------
+G1. WHO uses Arc -- unique suppliers/borrowers, retail vs institutional, overlap.
+G2. WHERE it's used most -- protocol leaderboard (Morpho / Aave / Aero / Uniswap)
+    by TVL, users, activity. Which asset (USDC/EURC/cirBTC/WETH) dominates.
+G3. Morpho vs Aave HEAD-TO-HEAD on every angle: supply, borrow, collateral,
+    utilization, asset mix, growth curve, market share, concentration.
+G4. (added) IS IT REAL -- day-one race curve + concentration = organic vs seeded.
+G5. (added) EURC credit share -- euro-stablecoin lending barely charted anywhere.
+
+--------------------------------------------------------------------------------
+1. THE TWO MACHINES (both are SINGLE-ANCHOR -- decode one contract each)
+--------------------------------------------------------------------------------
+MORPHO BLUE (isolated markets):
+  - One singleton. Every market = (loanToken, collateralToken, oracle, irm, lltv).
+  - COLLATERAL and LOAN are DIFFERENT tokens, tracked separately (isolated).
+  - Events: Supply/Withdraw (lend loanToken), Borrow/Repay, SupplyCollateral/
+    WithdrawCollateral, CreateMarket (id->tokens), Liquidate, AccrueInterest.
+  - AccrueInterest emits updated totalSupplyAssets + totalBorrowAssets = STATE.
+
+AAVE V4 HUB-AND-SPOKE (pooled):
+  - One HubInstance holds shared liquidity per asset. Spokes (Main, Forex) add/
+    draw. SUPPLIED assets DOUBLE AS COLLATERAL (pooled model, no separate
+    collateral token like Morpho). assetId indexes each asset.
+  - Events (from decoded ABI): AddAsset(assetId,asset,decimals) [id->token map],
+    AddSpoke(assetId,spoke), Add(assetId,addr,assets,shares) [supply],
+    Remove [withdraw], Draw(assetId,addr,assets,shares) [borrow], Reclaim
+    [repay], Restore, UpdateAsset(assetId, liquidity/debt/rate...) = STATE per
+    asset, MintFeeShares, ReportDeficit/EliminateDeficit, TransferShares.
+  - UpdateAsset fires on nearly every interaction -> latest per assetId = exact
+    current liquidity + debt. (Confirmed BUSY: dozens/day as of 2026-09-28.)
+
+=> KEY DESIGN CALL (the fix for our old Morpho deposits-only gap): read STATE,
+   don't sum flows. Latest AccrueInterest (Morpho) / UpdateAsset (Aave) per
+   market/asset gives current supply & borrow directly. Flow-netting only as a
+   fallback. This is what gives us borrow + utilization cleanly, not just deposits.
+
+ARCHITECTURE CAVEAT for an HONEST comparison:
+  - "Collateral" is NOT apples-to-apples. Morpho = explicit separate collateral
+    token per isolated market (SupplyCollateral events). Aave = supplied assets
+    are the collateral (pooled). Report Morpho collateral as its own line;
+    for Aave, "collateral" = supplied balance backing a borrow. Label precisely.
+  - Compare SUPPLY (real capital in) and BORROW (loans out) + UTILIZATION as the
+    common ground. Collateral breakout = Morpho-specific extra tile.
+
+--------------------------------------------------------------------------------
+2. ANCHORS (Arc mainnet)  -- decode these; Vector to confirm Dune coverage
+--------------------------------------------------------------------------------
+MORPHO:
+  Morpho Blue *MASTER*   0x34cd04070dd72b14e241112f6d83812df5af7fcd  (confirmed)
+  (Vault V2 / Midnight / bundlers: see arc_morpho.txt sec 4b -- count Blue only.)
+
+AAVE V4:
+  HubInstance *MASTER*   0x17288dfc86205301064577b98B02b81017e6F79C
+    (Herd name "HubInstance"; deployed 2026-09-02; LIVE + busy. Decode w/ Herd ABI.)
+    Spokes: derive from AddSpoke events once decoded (Main Spoke + Forex Spoke).
+  Dune spellbook PR #10010 already registers Aave v4 Arc assets -> likely decoded.
+
+DEX (for the Arc-wide leaderboard, G2 -- later stage):
+  Aero CL factory        0xb89df768af2cfe637ceb352c587fe8edaf491d03  (decoded; see arc_fx.txt)
+  Uniswap v4 PoolManager 0x8366a39cc670b4001a1121b8f6a443a643e40951
+  UniswapX v3 Reactor    0x0000000015134054eA82AE0bb9fda66b36402C36
+  (Uniswap v2/v3 factory + Universal Router: grab full addrs off ArcScan when building.)
+
+TOKENS (loan/collateral/priced assets):
+  USDC (native)  0x3600000000000000000000000000000000000000  (6 dec)
+  EURC           0xbEf5f6d51CB62b58e6A8f77868681825C6fe21c1  (6 dec)
+  WETH           0x128cc466b61f542da60c70e3aa11c10e19b84edb  (18 dec)
+  cirBTC         0x171a4217b86a807a64eb94757db6849fb4bdbaa0  (8 dec)
+  (cirBTC failed Dune price check_tokens -> may need dex.trades price fallback.)
+
+--------------------------------------------------------------------------------
+3. THE METRICS (every major angle)
+--------------------------------------------------------------------------------
+CORE (v1 -- ship these first):
+  M1. Supply TVL by asset & protocol (USD), current. [state read]
+  M2. Total borrowed by asset & protocol (USD), current. [state read]
+  M3. Utilization = borrow/supply, per asset and protocol-wide.
+  M4. Market share: each protocol's supply & borrow as % of Arc lending total.
+      Also per-asset (who owns USDC lending? who owns EURC?).
+  M5. Asset composition per protocol (USDC vs EURC vs cirBTC vs WETH split).
+  M6. Total collateral deposited -- Morpho: SupplyColl-WithdrawColl by collateral
+      token. Aave: supplied balance (=M1). (Label the difference, sec 1 caveat.)
+EXTENSIONS (v2):
+  M7. Day-one growth race: daily + cumulative supply/borrow per protocol from
+      block 0. THE headline "who's winning Arc" chart.
+  M8. Users: distinct suppliers & borrowers per protocol; wallets using BOTH.
+  M9. Concentration: top-N wallet share of supply (institutional-vs-retail proxy).
+  M10. Arc-wide leaderboard (G2): Morpho/Aave/Aero/Uniswap ranked by TVL, users,
+       tx count. "Where Arc capital sits."
+  M11. EURC credit corner (G5): EURC supply/borrow/util, both protocols.
+
+--------------------------------------------------------------------------------
+4. QUERY PLAN (staged + materialized -- anti-timeout, reuse via query_XXXX)
+--------------------------------------------------------------------------------
+STAGE 0  DECODE (Vector): Morpho Blue (have), Aave HubInstance (Herd ABI). Confirm
+         assetId->token (AddAsset) and marketId->tokens (Morpho CreateMarket).
+
+STAGE 1  REFERENCE MAPS (tiny, materialize):
+  Q_aave_assets   = from AddAsset: assetId, token, decimals.
+  Q_morpho_markets= from CreateMarket: marketId, loanToken, collateralToken, lltv.
+
+STAGE 2  CURRENT STATE (the core; materialize each):
+  Q_aave_state    = latest UpdateAsset per assetId -> total_liquidity, total_debt.
+                    Join Q_aave_assets -> token, decimals.
+  Q_morpho_state  = latest AccrueInterest per marketId -> totalSupplyAssets,
+                    totalBorrowAssets. Join Q_morpho_markets; SUM to per-loanToken.
+                    (Fallback if AccrueInterest unusable: net Supply-Withdraw /
+                     Borrow-Repay flows -- but state is preferred, sec 1.)
+  Q_morpho_coll   = SupplyCollateral - WithdrawCollateral per collateralToken (M6).
+
+STAGE 3  ENRICH + UNIFY (small output):
+  - Join tokens.erc20 (decimals) + prices.usd (BOUNDED to recent window!) for USD.
+    cirBTC -> dex.trades price fallback via coalesce if prices.usd empty.
+  - Build ONE table: protocol | asset | supply_usd | borrow_usd | utilization.
+    (Aave rows from Q_aave_state; Morpho rows from Q_morpho_state.) Materialize.
+
+STAGE 4  COMPARISON (reads the small unified table -- instant):
+  - Protocol totals + market share (M4). Per-asset head-to-head (M4/M5).
+    Utilization table (M3). Asset composition (M5). Collateral tile (M6).
+
+STAGE 5  GROWTH RACE (separate, materialize daily): daily net supply & borrow per
+  protocol from block 0, cumulative (M7). Bar/area race chart.
+
+STAGE 6  USERS (materialize): distinct Add/Supply senders per protocol (M8);
+  top-N wallet concentration (M9); both-protocol overlap.
+
+STAGE 7  ARC-WIDE LEADERBOARD (M10, capstone): union lending (above) + DEX venues
+  (Aero/Uniswap sized from swaps, see arc_fx.txt method) -> rank by TVL/users/tx.
+
+--------------------------------------------------------------------------------
+5. GUARDRAILS (banked lessons)
+--------------------------------------------------------------------------------
+- STATE over flow for TVL (latest UpdateAsset / AccrueInterest). Flow-netting only
+  as fallback; it broke on high-churn assets (USDC/USDT) before.
+- BOUND the prices.usd join to a recent window -- unbounded price join = the
+  timeout that bit us on Arc Morpho.
+- Aggregate BEFORE union; never union raw events. Materialize heavy scans; the
+  dashboard reads small tables.
+- Anchor/hub layer only. Morpho: count Blue, not vaults (double-count). Aave:
+  count Hub, not spoke pass-throughs.
+- LABEL precisely: supply != collateral != borrow != utilization. Note the
+  Morpho(isolated) vs Aave(pooled) collateral difference every time (sec 1).
+- Symbol collisions: 1000+ contracts print "USDC" on Arc. Pin by address. Exclude
+  0xffff...fffe (USDC double-count alias) in any raw transfer work.
+- VALIDATE vs app.morpho.org/arc and app.aave.com before shipping (ground truth).
+
+--------------------------------------------------------------------------------
+6. DASHBOARD TILES (planned)
+--------------------------------------------------------------------------------
+- KPI row: Arc lending TVL, total borrowed, blended utilization, #users.
+- Morpho vs Aave: supply, borrow, utilization (side-by-side bars).
+- Market share donut (supply + borrow).
+- Asset composition per protocol (stacked bar).
+- Day-one growth race (area/line, cumulative).
+- Per-asset head-to-head (USDC, EURC, cirBTC, WETH tables).
+- EURC credit corner. Concentration (top-N %). Arc-wide leaderboard (capstone).
+
+--------------------------------------------------------------------------------
+NEXT STEP
+--------------------------------------------------------------------------------
+Vector: confirm Morpho Blue + Aave HubInstance are decoded on Dune (Aave likely,
+per spellbook PR #10010; decode HubInstance w/ Herd ABI if not). Then Stage 1
+(reference maps) -> Stage 2 (state) -> Stage 3 unify. Validate vs the apps.
+Build order: M1-M4 first (the comparison core), then M7 (race), then M10 (capstone).

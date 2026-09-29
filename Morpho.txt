@@ -1,0 +1,108 @@
+================================================================================
+MORPHO (all-chains) — total supply & borrow TVL, ranked by asset
+================================================================================
+For: Vector. Purpose: build the "Morpho is a top DeFi lender" chart — total
+deposits/supply and borrows by asset, ranked high->low, across ALL chains.
+Portfolio centerpiece + pitchable. Sibling to arc_morpho.txt (Arc-only).
+Updated: 2026-09-18. Status: SCOPING — schema probe is step 1.
+
+--------------------------------------------------------------------------------
+0. THE ONE IDEA
+--------------------------------------------------------------------------------
+Rank Morpho's TVL by asset (supply side) and by asset (borrow side), summed
+across every chain. Show scale + composition of a top lender. Our lane: net &
+current (not gross), and separate REAL capital from LEVERED capital.
+
+--------------------------------------------------------------------------------
+1. WHAT WE TRACK
+--------------------------------------------------------------------------------
+CORE (v1):
+  - SUPPLY TVL by asset = net (Supply - Withdraw) per loan token, current, USD,
+    ranked. The "real capital in" number.
+  - BORROWS by asset   = net (Borrow - Repay) per loan token, current, USD, ranked.
+  - UTILIZATION by asset = borrows / supply per token (what's lent vs parked).
+EXTENSIONS (v2):
+  - COLLATERAL TVL by asset = net (SupplyCollateral - WithdrawCollateral).
+    LEVERED — keep separate from supply.
+  - LEVERAGE / LOOPING gauge = collateral vs net supply (angle nobody posts).
+  - PER-CHAIN split of the same metrics.
+
+--------------------------------------------------------------------------------
+2. THE MACHINE — layers & events (CRITICAL: don't double-count)
+--------------------------------------------------------------------------------
+MARKETS (Morpho Blue) = core lending primitive. Events:
+  Supply / Withdraw / Borrow / Repay / SupplyCollateral / WithdrawCollateral.
+  Liquidity physically lives here.
+VAULTS (MetaMorpho / Vault V2) = ERC-4626 wrappers ON TOP. Events:
+  Deposit / Withdraw (+ allocate/deallocate). A vault takes deposits then
+  SUPPLIES them into markets.
+
+=> ONE dollar into a vault fires BOTH vault.Deposit AND market.Supply (same money,
+   two layers). COUNT AT THE MARKET LAYER ONLY. Morpho Blue Supply-Withdraw already
+   includes direct suppliers AND vault-routed money. Adding vault deposits = DOUBLE
+   COUNT. Same for borrows. (Caveat: idle un-allocated vault cash isn't a market
+   Supply -> tiny undercount, note & ignore.)
+NAMES differ so they're distinguishable: markets = Supply/Withdraw/Borrow/Repay
+   (e.g. MorphoBlue_evt_Supply); vaults = deposit/withdraw (vaultv2/metamorpho).
+
+--------------------------------------------------------------------------------
+3. ACCOUNTING RULES (why looping doesn't break supply)
+--------------------------------------------------------------------------------
+- Deposits/supply by asset = Supply - Withdraw ONLY. Borrow/Repay do NOT change
+  deposits (borrowed funds still belong to suppliers). Skip them for supply.
+- Looping is a BORROWER action (SupplyCollateral + Borrow, over and over). It does
+  NOT create Supply events -> SUPPLY SIDE IS CLEAN of looping. Good.
+- Looping DOES inflate COLLATERAL + headline TVL (same equity re-posted each loop).
+- ALWAYS net & current, NEVER gross-cumulative (gross = where looping explodes it).
+- Supply-side ~ real external capital; collateral-side ~ levered. Keep separate.
+- Event-net omits accrued interest -> minor for a ranking; note, don't chase.
+
+--------------------------------------------------------------------------------
+4. DATA SOURCES
+--------------------------------------------------------------------------------
+- Morpho Blue per chain: morpho_blue_<chain>.MorphoBlue_evt_Supply/Withdraw/
+  Borrow/Repay (+ _CreateMarket to map market id -> loan token).
+- tokens.erc20 -> decimals + symbol (live). prices.usd -> USD (BOUNDED window).
+- CHECK FIRST for an aggregate/spellbook (huge shortcut) before hand-unioning.
+
+--------------------------------------------------------------------------------
+5. BUILD SEQUENCE
+--------------------------------------------------------------------------------
+1. DISCOVER: probe 'morpho%' schemas. List every morpho_blue_* chain; find any
+   aggregate/multichain table.
+2. PER CHAIN, PER MARKET: join CreateMarket -> loan token; net supply & net borrow
+   per token.
+3. AGGREGATE to (chain, token, net_supply, net_borrow) BEFORE unioning (tiny output).
+4. UNION all chains.
+5. ENRICH: decimals + price; group by token; rank. Two views: supply, borrow.
+6. MATERIALIZE: save as a Dune table refreshed daily; dashboard reads the small
+   table instantly (this is the real anti-timeout fix).
+
+--------------------------------------------------------------------------------
+6. GUARDRAILS (anti-timeout + correctness)
+--------------------------------------------------------------------------------
+- Net & current, never gross-cumulative.
+- Aggregate BEFORE union; never union raw events.
+- Only 4 event types (Supply/Withdraw/Borrow/Repay). No AccrueInterest scans.
+- Bound the price join to a recent window (this is what timed out the Arc query).
+- Market layer only (never add vault Deposit -> double count).
+- Supply vs collateral in separate buckets.
+- Symbol collisions across chains -> dedupe by canonical token, not raw symbol.
+
+--------------------------------------------------------------------------------
+7. DASHBOARD TILES (planned)
+--------------------------------------------------------------------------------
+- Supply TVL by asset (ranked table/bar + %).
+- Borrows by asset (ranked).
+- Utilization by asset.
+- KPIs: total supply, total borrow, overall utilization.
+- v2: per-chain breakdown; collateral/leverage (looping) gauge.
+
+--------------------------------------------------------------------------------
+NEXT STEP
+--------------------------------------------------------------------------------
+Run the schema probe:
+  select table_schema, table_name from information_schema.tables
+  where table_schema like 'morpho%' order by 1,2;
+Outcome decides: aggregate/spellbook exists -> build off it; else hand-union the
+morpho_blue_* chains. Then follow the build sequence, market layer only.

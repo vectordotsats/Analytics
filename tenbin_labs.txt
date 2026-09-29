@@ -1,0 +1,186 @@
+================================================================================
+TENBIN LABS — DUNE DASHBOARD PROJECT LOG
+================================================================================
+Created: 2026-08-30
+Analyst: Vector
+Status: IN PROGRESS — build to pitch
+Goal: Build a sophisticated Dune dashboard for Tenbin Labs to pitch to the team
+      for a reward / paid engagement.
+
+--------------------------------------------------------------------------------
+PROTOCOL OVERVIEW
+--------------------------------------------------------------------------------
+Tenbin Labs — tokenization protocol for FX, commodities, and precious metals.
+Built for institutional-scale liquidity, predictable redemption, on-chain
+settlement. Users swap, stake, and earn yield. Staked assets can be used as
+margin collateral. Raised ~$7M led by Galaxy Ventures.
+Chain: Ethereum (mainnet).
+App: https://app.tenbinlabs.xyz/explore
+Docs: https://docs.tenbinlabs.xyz/
+Yield partners: Morpho, Euler, Accountable.
+
+Three tokenized assets, each with identical module architecture:
+  - tGLD  = Tenbin Gold
+  - tMXN  = Tenbin Mexican Peso
+  - tBRL  = Tenbin Brazilian Real
+
+Controller = where mint & redeem transactions are sent.
+
+--------------------------------------------------------------------------------
+CONTRACT ADDRESSES (all Ethereum mainnet)
+--------------------------------------------------------------------------------
+[tGLD] Tenbin Gold
+  Token             0x6a547b25534234bb79CE6961a23Db13DE154b6F4
+  stGLD (Staking)   0x8d301801d899dC81fEabBDE69407A53b82bdBF19
+  Vault             0x7290245b3e564f0Ae2dA5af0690eF4842CF13c75
+  Adapter           0x932E0ba317897D4a3142929B95CaaDA33df5fC35
+  AssetSilo         0xA924A7493782c11b4E408B072367A0Fc02556092
+  CollateralManager 0x42F3F01D45E67294e20cE98AcFDC24dD7EA75dEa
+  Controller        0x5e631388b24ec493619DAEEAef6fc34B33d97Dcd
+  CustodianModule   0x97e1C8dc9a3CcA064fAA8318f9b5C7AdB26b0e89
+  Gate              0x70056E107dFBb58B74739Ba095E1Dd77CCC7cab1
+  MultiCall         0xdA8B85Cd62CDB3C104c80b479f9094e07EBcF7e8
+  RevenueModule     0x933745Dc6fcBcCDc491d9A8322672d731C8a262e
+  SwapModule        0x2a477FA5C9270DB6C600e799241cb8235D6f95f4
+
+[tMXN] Tenbin Mexican Peso
+  Token             0x8d015aFcb6F437010653352EB1E58152c4e23734
+  stMXN (Staking)   0x8BDf6A2DFda084bD242Cd285CF75E80de3eB00ba
+  Vault             0x43E3f5e27422C3a938269368eb7c3A3B545Bb6ca
+  Adapter           0x78AC7Ea86B5deFf61b9e24712f0c75c7A87d2A7a
+  AssetSilo         0x997ba5538fE0C0b6acb10fF2Ba71Ab0b3E66f63F
+  CollateralManager 0x2a21014B89F72de3Ffa6d645F89b8Ca5A6eFfe75
+  Controller        0xB5EBDeC6DA02119DD7BEB4782C181261f8BfEcC2
+  CustodianModule   0xb6CE19EC436a4ea57E0196973f65eF47353fA674
+  Gate              0x0C4D7b141479b93826b27e5D81b86f5E9B52B136
+  MultiCall         0xbE4b8f1cEb7710F896c963b0452335394eFAC166
+  RevenueModule     0xD7D6C0c722b918045F1D725C5BB09F79Fc851033
+  SwapModule        0xC274d87c8Ed44d85A1b0975a82a41e55eB891d86
+
+[tBRL] Tenbin Brazilian Real
+  Token             0x4C1b46adb8877E389171EC6Ef67b385094C0afaD
+  stBRL (Staking)   0xDaB276F6E19CCC54cA5aaA2645A94087ca776a3f
+  Vault             0xE275a69B93A5745e1560ee82D033205D323BfAd9
+  Adapter           0x255944977585ADAc9e8015368A247b2e5EC59152
+  AssetSilo         0xE6dF42C4B7A38A17e5A831D7Ec443bc949D33b31
+  CollateralManager 0x67eB9338bAd71443aDC1f6C319D5400292a8b7e4
+  Controller        0x0EF47CC8E244dBc8628FdEfFD4EE4DD747d14081
+  CustodianModule   0xfb3C3d52a60aea06064B13833dD730F18c61cB29
+  Gate              0xCF57CB92E0af71C1E3A2918e3FEe77D062f2E663
+  MultiCall         0x5399170161aF5f8f769Cb6B185034579A00c8765
+  RevenueModule     0x83cF329b9cbD2790aB2002E880592358C7c8Ff5F
+  SwapModule        0xe4f4Ff36055e9FffACB81be65B241CDe356bB0e4
+
+API base: api.tenbin.xyz/{asset}  (tgld | tmxn | tbrl)
+
+--------------------------------------------------------------------------------
+DASHBOARD METRIC PLAN (draft)
+--------------------------------------------------------------------------------
+Supply / TVL     : token totalSupply over time; mint - redeem net flow per asset
+Staking          : total staked (stX), staking ratio, staker count, stake/unstake flow
+Mint & Redeem    : volume, tx count, unique users via Controller
+Swap             : volume & count via SwapModule
+Revenue          : via RevenueModule
+Holders          : holder count growth, holder distribution/concentration per token
+Peg / Collateral : peg health, collateral coverage
+
+--------------------------------------------------------------------------------
+WORK LOG
+--------------------------------------------------------------------------------
+2026-08-30  Project kicked off. Researched protocol, pulled full contract map
+            from docs. Confirmed tGLD token on Etherscan. Created this file.
+            Next: check Dune decoding status for these contracts.
+
+2026-08-31  DECODING STATUS
+            - Tokens (tGLD/tMXN/tBRL) already indexed universally via
+              erc20_ethereum.evt_Transfer (no decode needed for supply/holders).
+            - Vector decoded the token contracts + Tier 1 & 2 modules under Dune
+              project schema: tenbin_labs (schema name "tenbin_labs", NOT
+              "tenbin_ethereum"). Confirmed decoded submissions:
+              Controllers (mint/redeem) - CONFIRM still in queue
+              StakedtGLD / StakedtMXN / StakedtBRL   (staking)
+              tGLD/tMXN/tBRL SwapModule              (swaps)
+              tGLD/tMXN/tBRL RevenueModule           (revenue)
+            - As of this note the module tables are BACKFILLING on Dune
+              (historical events still indexing). Queries against them return
+              partial/empty until backfill completes. Wait it out.
+
+            TOKEN FACTS CONFIRMED
+            - Decimals: tGLD / tMXN / tBRL all = 18.
+            - 1 tGLD = 1 troy ounce spot gold; 1 tMXN = 1 Mexican peso;
+              1 tBRL = 1 Brazilian real (unit exposure).
+            - Activity: tGLD live since 2026-02-12 (flagship);
+              tMXN & tBRL live since 2026-06-24.
+            - Supply sanity (today): tGLD ~139.7 oz, tMXN ~9M, tBRL ~8M. Correct.
+
+            PRICING (for USD TVL later)
+            - Tenbin prices via Chainlink oracles (built Chainlink's first 24/7
+              gold feed; migrated cross-chain to Chainlink CCIP). PROXY addrs:
+                tGLD/USD 0x369C67E8b026CC4Ef98350f332D7Dd52b85b7674
+                BRL/USD  0x3126E7F38D5f60f4E2B6ec3511C7bdbD79317Df1
+                MXN/USD  0xdb4881Ab0ad6b8423f76dd8C9d65542749a1dB77
+            - GOTCHA: Chainlink AnswerUpdated is emitted by the AGGREGATOR behind
+              the proxy, NOT the proxy address -> filtering answerupdated by proxy
+              returns 0 rows (expected). prices.usd had no rows for these tokens
+              either. DECISION: Vector reaching out to Tenbin team for the exact
+              price source before building USD TVL. Supply chart stands alone
+              for now. Do NOT mislabel supply as "$TVL" in the pitch.
+
+            QUERY 1 BUILT + WORKING: Daily circulating SUPPLY per asset
+            (one column each, forward-filled via running sum over a date spine,
+            newest day on top). Source: erc20_ethereum.evt_Transfer. Mint =
+            transfer from 0x0 (+), burn = transfer to 0x0 (-). Divide value/1e18.
+            This is SUPPLY (token units), not USD TVL.
+
+            DESIGN DECISION: build ONE query covering all 3 assets (not 3 copies).
+            Reason: single source of truth, enables comparison/stacked charts,
+            easier maintenance. Per-asset deep dives -> use a {{asset}} parameter,
+            never hardcoded copies.
+
+            NEXT: (1) confirm Controllers in backfill queue; (2) wait out backfill
+            for module tables; (3) build Holders panel now (Transfer-based, no
+            backfill needed); (4) then mint/redeem, staking, swaps, revenue.
+
+2026-09-01  BACKFILL DONE. Decoded schema confirmed = tenbin_labs_ethereum
+            (NOT tenbin_labs). Tables: tenbin_labs_ethereum.<contract>_evt_<event>
+            and _call_<fn>. Priority metrics for pitch: APY/rates, price,
+            revenue, fees.
+
+            EVENT MAP (per asset; prefix tgld/tmxn/tbrl):
+            Controller (mint/redeem):  _evt_mint, _evt_redeem
+            Staking (ERC-4626 vault):  staked<asset>_evt_deposit, _withdraw,
+              _rewardsreceived, _unstake, _instantunstake, _cooldownstarted;
+              calls: _converttoassets, _totalassets, _totalsupply
+              -> APY = share-price (totalAssets/totalSupply) growth over time.
+            Revenue:  <asset>revenuemodule_evt_revenuecollected, _rewardsent,
+              _withdrawtomultisig, _withdrawtomanager
+            CAVEAT (swaps): SwapModule has _call_swap but NO swap event. Swap
+              volume must come from the decoded call table, not an event.
+
+            QUERY 2 BUILT + WORKING: TRUE cumulative HOLDER count per asset
+            (one col each, newest on top). Fixed earlier bug where quiet days
+            showed near-zero; now counts standing holders (bal>0) via join/leave
+            flips. Source: erc20_ethereum.evt_Transfer.
+
+            BUILD ORDER: revenue/fees -> staking APY -> mint/redeem -> swaps.
+
+            QUERY 3 BUILT + WORKING: PROTOCOL FEES per asset, daily + cumulative,
+            in USD. Source: <asset>revenuemodule_evt_revenuecollected (fields:
+            amount, token). token = USDC 0xa0b8...eb48 -> DECIMALS = 6 (amount/1e6),
+            already USD. Label this "Protocol Fees" (NOT yield). Findings:
+            - tGLD fees = 0 across all days -> tGLD is effectively FEELESS (real
+              narrative, not a gap). tMXN/tBRL carry fees (~$50 / ~$145 daily with
+              weekly sweep spikes; cumulative ~$10K+ and climbing).
+            NOTE: Fees != Yield. Yield/APY (e.g. tGLD 5.51%) comes from the stX
+            ERC-4626 vault share price, sourced separately from Accountable lease
+            vault via RewardsReceived. Do not conflate.
+
+            QUERY 4 BUILT + WORKING: STAKED-SHARE SUPPLY per asset (stGLD/stMXN/
+            stBRL), one col each, running sum of mint(from 0x0)/burn(to 0x0) on
+            erc20_ethereum.evt_Transfer, /1e18. Validated: stGLD total supply
+            = 0.39 shares (confirmed independently - tGLD staking is genuinely
+            tiny). stMXN ~4.6M, stBRL ~6.2M. NOTE: the app's $444,842 is tGLD
+            LEASE-VAULT TVL (Accountable), NOT stGLD share count - separate things.
+
+            FUTURE TARGET (noted, not started): Ethena Pay - stablecoin metrics
+            angle / new pivot.

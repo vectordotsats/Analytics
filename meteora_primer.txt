@@ -1,0 +1,131 @@
+================================================================================
+METEORA PRIMER — how DAMM / DLMM work, and what that means for analytics
+================================================================================
+For: Vector. Purpose: understand the machine before charting it, so we DICTATE
+what we build instead of forking. Chain: Solana. Updated: 2026-09-14.
+
+--------------------------------------------------------------------------------
+0. THE ONE IDEA EVERYTHING ORBITS
+--------------------------------------------------------------------------------
+A pool holds 2 tokens. Traders swap and pay a FEE. Liquidity Providers (LPs)
+supply the tokens and collect the fees. The catch = IMPERMANENT LOSS (IL): when
+price moves, the pool auto-sells your winner and leaves you the loser, so an LP
+can earn big fees and STILL underperform just holding.
+  => The only question that matters: FEES EARNED vs IL SUFFERED = did LPs profit?
+  Every metric we build is a way of answering that. Everyone charts volume;
+  almost nobody charts LP outcomes. That's our lane.
+
+--------------------------------------------------------------------------------
+1. DAMM — Dynamic AMM (the simple one)
+--------------------------------------------------------------------------------
+- Constant product (x*y=k, Uniswap-v2 style). Liquidity spread across ALL prices
+  0 -> infinity. Passive: deposit and forget.
+- "Dynamic" twists: (a) idle tokens lent out via Meteora VAULTS for extra yield
+  on top of swap fees; (b) fee rate can adjust.
+- Position = FUNGIBLE LP token = plain % share of the pool.
+- Valuing an LP = share x reserves. Easy.
+- ANALYTICS: TVL, LP fees, IL all TRACTABLE (you know each LP's share + reserves).
+  This is where "do LPs profit" is cleanly answerable.
+
+--------------------------------------------------------------------------------
+2. DLMM — Dynamic Liquidity Market Maker (the powerful, hard one)
+--------------------------------------------------------------------------------
+- Concentrated liquidity via discrete BINS. Price axis chopped into bins; each
+  bin = a tiny pool at ONE fixed price. Spacing = BIN STEP (e.g. 0.2%).
+- Exactly ONE ACTIVE BIN at a time (where trading happens, holds both tokens).
+  Bins ABOVE active hold only one token; bins BELOW hold only the other.
+- LP chooses WHICH bins to fund and in what SHAPE (spot / curve / bid-ask).
+  Concentrate near price -> far more fees per dollar, BUT only while price stays
+  in your bins.
+- Inside a bin: ZERO slippage (constant sum). Price steps bin-to-bin as trades
+  exhaust each bin's liquidity.
+- DYNAMIC FEES = base fee + VOLATILITY SURCHARGE that spikes when price whipsaws.
+  This is why DLMM prints for LPs on memecoins: more volatile = fatter fees.
+- OUT-OF-RANGE RISK: when price leaves your bins you're 100% in one token,
+  earning ZERO fees, fully exposed. IL is sharper + path-dependent.
+- Positions are individual (NFT-like), NOT fungible -> must ACTIVELY REBALANCE as
+  price drifts. That labor is exactly what HAWKFI automates.
+- ANALYTICS: volume + fees EASY (swaps). True LP PnL/IL HARD (must reconstruct
+  each position's bins + the active bin over time). = the holy-grail-hard metric.
+
+--------------------------------------------------------------------------------
+3. LIFE OF A DLMM POSITION (walk it once, feel it)
+--------------------------------------------------------------------------------
+Say a SOL/MEME pool, price = 100. Bin step 1%. You LP $1,000 concentrated in
+bins 99, 100, 101 (tight around price).
+  t0 DEPOSIT: active bin=100. Your liquidity split across 99/100/101. You hold a
+     mix of SOL + MEME. Earning fees on every swap that crosses your bins.
+  t1 IN RANGE, price chops 99<->101: JACKPOT. Every wiggle pays you the base fee
+     PLUS the volatility surcharge. Tight concentration = max fees per dollar.
+  t2 PRICE PUMPS to 130: it blew past bin 101. As price rose it SOLD all your SOL
+     for MEME... wait, inverse: as MEME pumps vs SOL, the pool sold your MEME for
+     SOL through each bin. Now you're parked in bins below price = 100% one token,
+     OUT OF RANGE, earning ZERO. You also "sold the winner early" = IL.
+  t3 REBALANCE: to earn again you must withdraw + redeposit around 130 (new bins).
+     Costs gas + realizes the IL. Do it too often = bleed; too late = earn nothing.
+     HawkFi automates this decision. (Metric: rebalance frequency, and does auto
+     beat manual?)
+KEY FEELING: DLMM LPing = a bet that price stays NEAR where you put your bins,
+long enough for fees to out-earn the IL from it eventually leaving.
+
+--------------------------------------------------------------------------------
+4. SUPPORTING PIECES
+--------------------------------------------------------------------------------
+- VAULTS (meteora_vault_solana): lending layer DAMM parks idle liquidity in.
+  Extra yield source -> "total LP yield = swap fees + vault yield."
+- DBC (Dynamic Bonding Curve): memecoin LAUNCHPAD. Token starts on a bonding
+  curve, then GRADUATES into a DAMM/DLMM pool at a threshold. Launch/graduation
+  analytics live here.
+
+--------------------------------------------------------------------------------
+5. SCHEMA MAP (Dune, as of 2026-09-14)
+--------------------------------------------------------------------------------
+  meteora_pools_solana    = DAMM v1 (amm_evt_addliquidity/removeliquidity/
+                            claimfee/swap/poolcreated/lock ...). CONFIRMED tables.
+  meteora_version_dlmm    = DLMM (flagship). <- explore columns next.
+  meteora_version_cpamm   = constant-product AMM (likely DAMM v2).
+  meteora_version_amm     = DAMM v1 (unified layer).
+  meteora_vault_solana    = the vaults.
+  meteora_v1..v4_solana   = versioned raw deployments.
+  meteora_solana          = ? (probably a top-level/unified namespace).
+  dex_solana.trades       = ALL Meteora swaps (project='meteora'), ~3.9B rows.
+                            Powers the entire volume/fee side with no decode work.
+NOTE: Solana on Dune is INSTRUCTION-based, not EVM event-logs. Billions of rows.
+ALWAYS filter by pool + time or you time out.
+
+--------------------------------------------------------------------------------
+6. THE METRIC ANGLES (our lane — LP outcomes, not volume)
+--------------------------------------------------------------------------------
+Ranked easy -> hard:
+  A. POOL CREATION / GRADUATION rate (poolcreated, DBC) = memecoin-launch pulse.
+  B. LOCKED-LP / rug-resistance (amm_evt_lock) = trust signal. Sleeper, low effort.
+  C. LP FEE REVENUE (claimfee + swap fees) = what LPs actually earned. Tractable.
+  D. TIME-IN-RANGE vs OUT-OF-RANGE (DLMM) = HERO METRIC. Needs liquidity bins +
+     active bin over time. Medium effort, high signal, nobody shows it.
+  E. DYNAMIC-FEE CAPTURE (DLMM) = fees earned per $ of liquidity in volatile vs
+     calm windows. Shows the memecoin edge.
+  F. BIN CONCENTRATION = how tight LPs cluster; risk appetite.
+  G. REBALANCE FREQUENCY + HAWKFI EDGE = auto vs manual outcomes. Differentiator.
+  H. FULL LP PnL / IL (DLMM) = holy grail, hardest. Build toward it, don't open on it.
+
+--------------------------------------------------------------------------------
+7. WHAT MAKES THIS EASIER (discipline, so we don't wander)
+--------------------------------------------------------------------------------
+1. ONE hero metric first, not the buffet. Rec: TIME-IN-RANGE (D). Sharp + doable.
+2. Start POOL-LEVEL, not position-level. Per-NFT tracking is the hard mode; add
+   it later once pool-level works.
+3. Reference pools: pick 2-3 known DLMM pools (a hot memecoin + a stable pair) to
+   test + validate against Meteora's own app. Never fly blind.
+4. Confirm columns before SQL: pull meteora_version_dlmm table columns; find how
+   bins are stored (bin id, price, liquidity) + how active bin is derivable.
+5. Always scope by pool + time (Solana = billions of rows).
+6. Define the exact question each metric answers BEFORE writing SQL. Label
+   precisely, validate vs ground truth. (Agua lesson: don't ship what you can't
+   validate.)
+
+--------------------------------------------------------------------------------
+NEXT STEP
+--------------------------------------------------------------------------------
+Pull columns for the DLMM tables in meteora_version_dlmm (add/remove liquidity,
+swap, position, fee). Identify: bin id/price, liquidity amount, active bin,
+position/owner, pool. Then design the TIME-IN-RANGE metric pool-level.

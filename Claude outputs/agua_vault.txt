@@ -1,0 +1,75 @@
+================================================================================
+AGUA VAULT (Tropical Water / Reservoir) — DUNE ANALYTICS PROJECT LOG
+================================================================================
+Created: 2026-09-08
+Analyst: Vector (CM + Data Analyst @ Reservoir)
+Status: IN PROGRESS — internal analytics (own company product)
+Goal: Deep analytics on the Agua Vault — deposits, depositors, yield, fees,
+      and sharp "see what others miss" angles.
+
+--------------------------------------------------------------------------------
+PROTOCOL OVERVIEW
+--------------------------------------------------------------------------------
+Agua Vault = "Opportunity Vault" by Tropical Water Management Corp, a higher-yield
+product within the Reservoir ecosystem (separate from core rUSD).
+Mechanic: Deposit USDC -> receive yield-bearing vault shares that compound every
+second (ERC-4626-style). Vault holds ACTUAL USDC (unlike wsrUSD/trUSD which
+mint/burn rUSD). Shares are a LayerZero OFT (bridgeable, yield syncs cross-chain).
+Withdrawals: fee-free after lockup; early exit pays a small fee. Early-exit fees
+accumulate in the vault as UNTRACKED SURPLUS USDC -> effectively extra yield to
+remaining/patient depositors.
+Docs: https://docs.tropicalwater.xyz/
+
+--------------------------------------------------------------------------------
+CONTRACT ADDRESSES
+--------------------------------------------------------------------------------
+Agua Vault — ETHEREUM (SOURCE chain; holds USDC, runs yield) — BUILD HERE
+  0xa98b4a70e17e55045cde4972b95bc2e8cec22a0f
+  (vault IS the share token / OFT; ERC-4626-style)
+Agua Vault — MONAD (destination/bridge only, IS_SOURCE_CHAIN=false)
+  0x2abc42250154752273a4560e875c858623f83ecc
+  NOTE: Monad likely NOT on Dune -> focus Ethereum where real deposits+yield live.
+Admin / Allocator (both chains): 0x086eb9C2B14dD657ae77D07dF9115A2F946CE327
+  (moves USDC to generate yield — watch it; its withdrawals are NOT user exits)
+USDC (Ethereum): 0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48
+
+Vault decoded on Dune by Vector. NEED: confirm schema name + event/column names
+(Deposit / Withdraw ERC4626 events; convertToAssets / totalAssets calls).
+
+--------------------------------------------------------------------------------
+ANALYSIS PLAN
+--------------------------------------------------------------------------------
+Foundation (build first):
+  1. Deposit activity & depositors — daily deposits/withdrawals, unique
+     depositors, new vs returning, TVL over time (assets under mgmt).
+Then:
+  2. Total yield paid out — realized APY from share price (convertToAssets) growth.
+  3. Fees generated — early-exit fees.
+Sharp / differentiated angles ("see what others don't"):
+  - EARLY-EXIT FEE = HIDDEN YIELD to stayers. Docs: fees accrue as untracked
+    surplus USDC. Quantify total + effective APY boost to lockup-completers.
+  - LOCKUP COHORT / UNLOCK LADDER — deposits grouped by lockup-end -> future
+    withdrawal-pressure view.
+  - STICKY vs MERCENARY — % exiting early (paying fee) vs waiting; retention by cohort.
+  - WHALE CONCENTRATION — deposit-size distribution, top-10 share.
+  - CAPITAL SOURCE — is deposited USDC fresh, from CEXs, or cannibalized from
+    other Reservoir products (rUSD/wsrUSD)?
+  - CROSS-CHAIN SPLIT — share supply bridged to Monad vs held on ETH (OFT).
+
+IMPORTANT ANALYSIS NOTES:
+  - TVL = totalAssets (AUM), NOT USDC balance of vault — allocator deploys USDC
+    out to earn yield, so raw USDC-in-vault understates TVL. Use totalAssets /
+    convertToAssets(totalSupply), or share supply x share price.
+  - User deposits/withdrawals come from the vault's Deposit/Withdraw EVENTS, not
+    raw USDC transfers (raw transfers conflate user flows with allocator moves).
+  - Share price (convertToAssets) growth = realized yield (same pattern as
+    Reservoir wsrUSD savingcoinv2_call_converttoassets).
+
+--------------------------------------------------------------------------------
+WORK LOG
+--------------------------------------------------------------------------------
+2026-09-08  Project started. Pulled protocol overview + addresses from docs.
+            Ethereum = source chain to build on. Vault decoded by Vector.
+            NEXT: confirm decoded event/column names, then build deposit activity
+            (metric #1): daily deposits/withdrawals, unique + new/returning
+            depositors, TVL over time.
