@@ -1,0 +1,246 @@
+================================================================================
+MORPHO STOCK-BACKED LOANS — Coinbase tokenized equities on BASE
+================================================================================
+For: Vector. Purpose: dashboard stock-backed borrowing on Morpho (Base) -- lend/
+borrow against Coinbase tokenized stocks, variable (Blue) + fixed (Midnight).
+Fresh, under-dashboarded, strong narrative-vs-reality angle. Leads into Midnight
+P2P deep-dive. CHAIN = BASE (not Arc -- Arc infra does NOT apply here).
+Updated: 2026-10-06. Status: SCOPING (research done; decode/build next).
+
+--------------------------------------------------------------------------------
+0. THE ONE IDEA
+--------------------------------------------------------------------------------
+Coinbase put real US stocks on-chain (Base) as tokens. Morpho lets you post them
+as collateral and borrow USDC. So: "borrow dollars against your Apple/Nvidia
+shares, on-chain, 24/7." Marketed as variable AND fixed rate. Reality so far:
+tiny, variable-only in practice, fixed-rate layer is a GHOST TOWN. That gap =
+our lane.
+
+--------------------------------------------------------------------------------
+1. THE ASSET (Coinbase tokenized stocks)
+--------------------------------------------------------------------------------
+- Live on BASE since 2026-08-24. Issuer: Coinbase, "B20" token standard.
+- Each token = 1:1 claim on a REAL share held in custody by ALPACA (broker,
+  ADGM-regulated). Bankruptcy-remote. Reflects dividends + splits.
+- Transferable with NO whitelist once minted; trades 24/7 on Aerodrome etc.
+- NON-US users only (regulatory gate).
+- PRICING: Chainlink feeds (continuous). Morpho uses a Chainlink V2 oracle
+  adapter to price the collateral. Oracle = the critical risk (stocks trade
+  24/7 on-chain but the underlying equity market has hours -> gap/stale risk).
+- Market size: ~$11.4M total stock tokens on Base (early, growing). Ticker list
+  doubled to ~10 on Sep 4; more being added.
+
+--------------------------------------------------------------------------------
+1b. ANCHORS (Base) -- BUILD ADDRESSES
+--------------------------------------------------------------------------------
+B20 STOCK TOKENS (10 live as of 2026-10-06):
+  AAPLc  0xb200000000000000000000C2e324d24d7eEcd1fb
+  AMZNc  0xb200000000000000000000d9192b6B456483C2E8
+  GOOGLc 0xb2000000000000000000002D0BA3164cc74f58B7
+  METAc  0xb2000000000000000000008bC8786B856E61707C
+  MSFTc  0xB200000000000000000000Ab99cFa739E253872B
+  MSTRc  0xb2000000000000000000004884b426556b92883d
+  NVDAc  0xb20000000000000000000078ee7ce2fE4908108C
+  SNDKc  0xb200000000000000000000397293Cb8cda9a10c5
+  SPCXc  0xb2000000000000000000007b9fcbd005511aCBd5
+  TSLAc  0xb2000000000000000000001e800a7f5189430cD0
+REGISTRY (oracle + admin, all tokens)  0x3f3E8cf41cdd3b1D118c16471aB0113DfDDd5CaD
+MORPHO BLUE (Base, canonical)          0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb
+  -> confirm Dune schema (likely morpho_blue_base / official morpho spellbook).
+MIDNIGHT (Base, fixed-rate)            TBD -- grab when we do the Midnight dive.
+
+*** DYNAMIC ENUMERATION (the RIGHT route -- verified via Herd) ***
+WRONG: the 0xb200.. prefix is a SHARED vanity deployer (47k+ memecoins too). Do
+  NOT filter by prefix. WRONG: curated address list (misses new listings; 40+ exist).
+RIGHT: the B20AssetFactory deploys every real Coinbase stock and emits an event:
+  B20AssetFactory  0x4ba3e29e254f25e94e61c4c9d67b37027331534d
+  event SecurityTokenDeployed(address token idx, address deployer idx,
+        string name, string symbol, address admin, bytes32 salt)
+  topic0 = 0x5c43a3074411409ce140dea2139563c088f43588c8ab6a2b8e2119a670576ce1
+  Token impl = B20Asset (ERC20 + roles: MINT_ROLE, SEIZE_ROLE, supplyCap, Memo).
+=> query_STOCK_TOKENS (dynamic, self-updating, catches all 40+):
+   DECODE route: select token, symbol, name
+                 from <schema>.b20assetfactory_evt_securitytokendeployed
+   RAW-LOG route: select distinct bytearray_substring(topic1,13,20) as token
+                  from base.logs
+                  where contract_address = 0x4ba3e29e254f25e94e61c4c9d67b37027331534d
+                    and topic0 = 0x5c43a3074411409ce140dea2139563c088f43588c8ab6a2b8e2119a670576ce1
+   All downstream queries (1A supply, 1B time series, Morpho filter) read from this.
+
+--------------------------------------------------------------------------------
+1c. SAVED DUNE QUERIES (single source of truth -- reuse via query_<id>)
+--------------------------------------------------------------------------------
+query_8916698 = STOCK SUPPLY (Query 1A / "query_STOCKS_SUPPLY"): per-token supply
+  + price + supply_usd for all B20 stocks on Base. Reads query_STOCK_TOKENS
+  (raw-log factory enumeration). All Section-1 tiles read from this:
+    - T2 active table: where supply_units>0 and symbol not like 'tDUMMY%'
+    - KPI: deployed/minted/priced/activation%/total_usd/largest
+    - cumulative supply: window top-row=total
+  Validated snapshot (2026-10): 122 deployed, 40 minted, 38 priced, ~$30.07M total.
+query_8915033 = STOCK TOKENS ("query_STOCK_TOKENS"): raw-log factory enumeration
+  (128 B20 tokens). Source for 8916698 + all Morpho-side filters. (Later: swap to
+  the coinbase_b20 decode once it finishes, verify same set.)
+
+MORPHO DECODE (Base) CONFIRMED: schema = morpho_blue_base (official spellbook).
+  Lending events: morphoblue_evt_createmarket / supply / withdraw / borrow / repay
+    / supplycollateral / withdrawcollateral / accrueinterest / liquidate.
+  Bonus: adaptivecurveirm_evt_borrowrateupdate (rates), morphochainlinkoraclev2*
+    (oracle -> Section 6), preliquidation_evt_preliquidate (Base pre-liquidations).
+  Base USDC (loan token, all stock markets) = 0x833589fcd6edb6e08f4c7c32d4f71b54bda02913 (6 dec).
+
+query_8918917 = STOCK MARKETS ("query_STOCK_MARKETS"): Morpho Base markets where
+  collateral (or loan) is a B20 stock. 13 markets / ~8 stocks, ALL loan=USDC
+  (stocks never a loan asset -- confirmed). Same stock has MULTIPLE markets at
+  different LLTVs (NVDAc 62.5%+77%, GOOGLc 62.5%+77%, METAc 62.5%+86%) = risk tiers.
+  Feeds Section-2 Stage 2 (supply/borrow/collateral/util per market).
+query_8920878 = SECTION 2 (market table): supply_usd/borrow_usd/collateral_usd/
+  utilization per stock market, reads 8918917 + prices from 8916698 + USDC=$1.
+  Snapshot (2026-10): real action in GOOGLc/SPCXc/AAPLc/NVDAc (~$5k borrow each,
+  ~90-95% util); total ~$17k supplied, ~$15.5k borrowed, ~$43k stock collateral.
+  (cumulative variant: window top-row=total; collateral its own token universe.)
+
+--------------------------------------------------------------------------------
+7. AAVE SIDE + MORPHO-vs-AAVE COMPARISON (expansion -- "stock lending wars, Base")
+--------------------------------------------------------------------------------
+AAVE V4 on Base added Coinbase tokenized stocks as collateral ~2026-09-25.
+  - 7 stocks (collateral-only, borrow USDC): AAPL, AMZN, GOOGL, META, MSFT, NVDA,
+    TSLA -- blue-chips only (vs Morpho's ~13 incl SPCXc/MSTRc/SNDKc).
+  - ARCHITECTURE = HUB-AND-SPOKE (same as Arc Aave) -> Arc Aave queries PORT:
+    Add/Remove (supply) - Draw/Restore (borrow) per asset, UpdateAsset=index only.
+    Collateral factors 65-79%. Chainlink priced. Caps ~$29M coll/$32M sup/$21M bor.
+  - THE FINDING: Aave actual stock deposits ~$4.7M vs MORPHO ~$43k collateral ->
+    Aave ~100x bigger at stock lending on Base. OPPOSITE of Arc (Morpho led there).
+    Morpho = long-tail variety/tiny; Aave = few blue-chips/big.
+BUILD:
+  1. Recon: is aave_v4_base decoded on Dune? (information_schema scoped check).
+     If yes -> port Arc Aave queries, filter AddAsset to stock tokens (query_8915033).
+     If no -> find Equities Hub addr (Herd: largest holder of a stock token on Base),
+     decode it (like Arc HubInstance), then build.
+  2. Aave stock query: supply/borrow/collateral/util per stock (hub level).
+  3. UNION Morpho + Aave -> market share, who wins stock-backed lending on Base.
+  (Mirror of arc_lending_wars.txt structure.)
+
+AAVE V4 BASE DECODE CONFIRMED: schema = aave_v4_base (official spellbook).
+  equitieshubinstance = Equities Hub (liquidity layer; = Arc corehubinstance).
+    evt: add/remove (supply), draw/restore (borrow), addasset(assetId,underlying,
+    decimals -- plain event, NO json), updateasset(index/rate only), transfershares.
+  mag7spokeinstance = user-facing spoke ("Mag 7"): supply/withdraw/borrow/repay/
+    setusingascollateral/liquidationcall/addreserve. (per-user + liquidations v2.)
+  treasuryspokeinstance = plumbing (ignore).
+  METHOD (ports from Arc Aave): hub Add-Remove = supply (USDC) or collateral
+    (stocks, collateral-only so Draw-Restore~0); USDC Draw-Restore = borrow. Net
+    flows OK (young market); cast int256 (underflow). Price: 8916698 + USDC=$1.
+  Stage A1 = AddAsset filtered to USDC + stock tokens (query_8915033) -> assetId map.
+    query_8922759 = AAVE STOCK ASSETS: 8 assets (ids 0-6 = 7 Mag7 stocks @8dec,
+    id 7 = USDC @6dec). Base USDC = 0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.
+  Stage A2 = per-asset supply/borrow/collateral/util, shaped like Morpho 8920878.
+    query_8925776 = AAVE STATE (A2): per-asset rows + role col (Collateral vs
+    Borrowable USDC pool). Validated vs app: USDC supply $5.28M / borrow $1.56M /
+    util 29.6%; stock collateral total ~$4.76M (META 1.22M, NVDA 1.20M, GOOGL 658k,
+    TSLA 615k, AAPL 516k, AMZN 313k, MSFT 244k). (cumulative collateral variant made.)
+    KEY: Aave POOLED -> USDC borrow is ONE pool vs the whole basket, NOT per-stock
+    (unlike Morpho isolated). Per-stock compare = COLLATERAL only; borrow/supply/util
+    = protocol level. Pooled-vs-isolated = a headline tile.
+  COMPARISON (dashboard title set by Vector = "Coinbase Tokenized Stocks"):
+    query_8927604 = C1 TOTALS: union 8920878 (Morpho) + 8925776 (Aave) -> 2 rows,
+      stock_collateral_usd / usdc_supply_usd / usdc_borrow_usd / total_deposits /
+      util% + collateral_x_vs_smallest (min() over() -> on-chain the "~110x", no
+      hardcode). Finding: Aave ~$4.76M coll / ~$5.28M sup / 29.6% util vs Morpho
+      ~$43k coll / ~$17k sup / ~90%+ util. Aave=money, Morpho=demand+variety.
+    C2 per-stock COLLATERAL head-to-head (full-outer on normalized symbol; Morpho
+      summed across LLTV tiers; venues col Both/Aave-only/Morpho-only). Aave borrow
+      pooled -> collateral is the only honest per-stock compare.
+    C3 market share / C4 headline. Base flips Arc (Morpho led Arc).
+  TEXT WIDGET (dashboard intro) + footer written 2026-10-11 (Built by Vector,
+    links Coinbase/Morpho/Aave + dune.com/vectordotsol).
+  CAVEAT banked: Morpho UI "Total Liquidity" ~$500k/mkt = PublicAllocator CAPACITY,
+    not real supply (gross 154k in / 149k out = $5.7k net). Compare ACTUAL vs ACTUAL.
+  SCOPE: Coinbase B20 stocks only (deSPXA & other issuers excluded -- broader
+    "all tokenized equities" = later expansion). Title must say "Coinbase".
+
+--------------------------------------------------------------------------------
+2. THE MORPHO MARKETS (stock-backed loans, Base) -- live 2026-09-18
+--------------------------------------------------------------------------------
+5 markets, all curated by STEAKHOUSE FINANCIAL, borrow asset = USDC:
+  AAPLc  (Apple)      LLTV 62.5%
+  NVDAc  (Nvidia)     LLTV 62.5%
+  METAc  (Meta)       LLTV 62.5%
+  SPCXc  (SpaceX!)    LLTV 62.5%   <- a PRIVATE company's "stock" as collateral
+  GOOGLc (Alphabet)   LLTV 77%     <- higher trust / lower vol tier
+Liquidation penalty ~12.67% at the 62.5% LLTV tier (Apple example).
+
+RATES (variable, Morpho Blue), snapshot at writeup:
+  AAPL / GOOGL / NVDA ~90% util -> borrow 5.62% / lend 5.06%
+  META 97% util       -> borrow 17.52% / lend 16.98%  <- demand spike, why?
+FIXED (Morpho Midnight): 95 markets across the 5 tokens, ZERO outstanding units.
+  = marketed but unused. THE finding.
+
+REALITY CHECK (launch): only ~$104,401 stock tokens pledged, ~$54,652 USDC
+borrowed -> <1% of the ~$11.4M stock tokens on Base are being used as collateral.
+"Stock-backed DeFi loans" headline vs near-empty reality = first-mover white space.
+(Context: Morpho's TOTAL Base credit markets ~$2-2.3B outstanding early Sep.)
+
+--------------------------------------------------------------------------------
+3. THE ANGLES (our lane -- outcomes + is-it-real)
+--------------------------------------------------------------------------------
+A. THE FIXED-RATE GHOST TOWN: 95 Midnight markets, 0 outstanding. Variable works,
+   fixed is empty. Why? (Leads straight into the Midnight P2P deep-dive.)
+B. PER-STOCK DEMAND: which equity is most borrowed against? META's 17.5% borrow
+   rate vs others' 5.6% = someone paying up for Meta leverage. Dig into why.
+C. ADOPTION CURVE from Sep 18: is stock-backed lending actually growing or a
+   press-release product? <1% utilization of available stock tokens.
+D. LIQUIDATION / ORACLE RISK: stocks tokens trade 24/7, underlying market has
+   hours. Weekend/after-hours gaps -> liquidation spikes. Track liquidations vs
+   equity market open/close. Nobody charts this.
+E. WHO USES IT: handful of wallets borrowing against stocks -- concentration,
+   are they real users or team/MM seeding.
+F. SPCXc oddity: SpaceX is private -> what's the "share" really, how priced,
+   how much collateral posted. High-signal curiosity piece.
+
+--------------------------------------------------------------------------------
+4. WHAT TO TRACK (metrics)
+--------------------------------------------------------------------------------
+- Per-stock market: collateral pledged (USD), USDC borrowed, utilization,
+  variable borrow/lend APY, LLTV, liquidation penalty.
+- Variable (Blue) vs fixed (Midnight) outstanding -- the ghost-town split.
+- Growth from launch (daily collateral + borrow, cumulative).
+- Liquidations: count, size, timing vs NYSE hours (oracle-gap thesis).
+- Users: distinct borrowers/suppliers, top-N concentration.
+- Rank stocks by borrow demand; rate dispersion across the 5.
+
+--------------------------------------------------------------------------------
+5. BUILDABILITY (ports from our Arc Morpho work)
+--------------------------------------------------------------------------------
+- Morpho Blue on BASE is well-decoded on Dune (official spellbook: check
+  morpho_blue_base / the morpho spellbook). Same event model we already used:
+  Supply/Withdraw/Borrow/Repay/SupplyCollateral/WithdrawCollateral/CreateMarket.
+- OUR MARKET-LEVEL MORPHO QUERY PORTS DIRECTLY: swap schema Arc->Base, then
+  FILTER markets where collateral_token IN {AAPLc, NVDAc, METAc, SPCXc, GOOGLc}.
+  Pull those addresses from CreateMarket (collateral side) + Basescan/token list.
+- Pricing: USDC from prices.usd(base); stock tokens priced via Chainlink feed OR
+  dex.trades(base) fallback (they trade on Aerodrome) -- same fallback pattern.
+- Midnight (fixed): separate contracts (same family Tenor is built on -- we know
+  it). Decode Midnight on Base; P2P fixed-rate order model = section for the
+  follow-up deep-dive.
+
+--------------------------------------------------------------------------------
+6. MIDNIGHT P2P (teed up for next)
+--------------------------------------------------------------------------------
+- Morpho Midnight = FIXED-RATE layer. P2P order matching of fixed-rate lenders &
+  borrowers (vs Blue's pooled variable). Tenor Finance (Vector built this) runs
+  on Midnight tech -> familiar.
+- 95 stock markets on Midnight, 0 outstanding = the dataset is the EMPTINESS +
+  whatever orders exist. Track: open orders, fills, fixed rates quoted, tenors,
+  matched vs unmatched. "Why is on-chain fixed-rate not catching on" story.
+
+--------------------------------------------------------------------------------
+NEXT STEP
+--------------------------------------------------------------------------------
+1. Confirm Morpho Blue Base decode on Dune + grab the 5 stock-token addresses.
+2. Port the market-level Morpho query to Base, filter to stock-collateral markets.
+3. Validate vs app.morpho.org (Base, stock markets).
+4. Then decode Midnight on Base for the P2P fixed-rate deep-dive.
+
+Sources: crypto.news (five Coinbase tokenized stocks on Morpho), cryptobriefing
+(stock-backed loans on Base), coindesk (Coinbase tokenized stocks on Base, B20 /
+Alpaca / Chainlink), thedefiant, morpho.org. All dated Aug-Sep 2026.

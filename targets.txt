@@ -1,0 +1,143 @@
+================================================================================
+OUTREACH TARGETS — protocols that need a data analyst (Vector)
+================================================================================
+Purpose: a running hit-list of early/under-dashboarded DeFi protocols to cold-
+reach as an ON-CHAIN DATA ANALYST (not a dashboard guy). Reach out to every one
+that fits; rejection is expected and fine — it's a numbers game + reps. Every
+protocol needs someone reading their data. Created: 2026-10-27.
+
+--------------------------------------------------------------------------------
+POSITIONING — ANALYST, NOT "DASHBOARD GUY" (read before every pitch)
+--------------------------------------------------------------------------------
+Rook's ask (ETCHY) was the template: not "build me charts" but "track holder
+distribution, monitor whale wallets, watch LPs to PREVENT DUMPS." That's
+INTELLIGENCE + MONITORING + DECISIONS. Sell that:
+  - Who's REALLY using you (organic vs mercenary/arb/wash flow).
+  - Holder & whale distribution; who's positioned to dump; concentration risk.
+  - Liquidity / LP health; where depth is thin; execution quality vs market.
+  - Is your growth real or rented (incentive/airdrop farming).
+  - EARLY-WARNING alerts before things move against you (exits, liquidity pulls).
+  - Public dashboards too — but as credibility/output, not the product.
+One line: "I help you see what your on-chain data is actually saying, and turn
+it into decisions — monitoring + alerts, with dashboards as the delivery."
+
+--------------------------------------------------------------------------------
+OUTREACH TEMPLATE (adapt the [hook] per protocol — the hook is everything)
+--------------------------------------------------------------------------------
+Hey [name] — been digging into [protocol] on-chain and noticed [SPECIFIC
+observation: e.g. "your X pool is showing ~Y% APR but a chunk of that volume
+looks like arb, not organic" / "top 3 wallets hold Z% of supply"].
+
+I'm an on-chain data analyst. I help protocols read what their data actually
+says — organic vs mercenary flow, holder/whale distribution and dump risk,
+liquidity depth & execution quality, and early-warning alerts before things
+move against you. Dashboards + monitoring, but the point is the decisions they
+drive.
+
+Recent work: [dune.com/vectordotsol] + a full teardown of Aave's tokenized-stock
+incentive (who claimed, real vs rented TVL, where the whales are).
+
+Worth a quick look at what I'd track for [protocol]? Happy to send a sample read
+first — no strings.
+
+RULES (same as ETCHY vetting): verify who you're talking to; never run their
+code / connect wallet / sign; USDC only; propose a small paid pilot.
+
+================================================================================
+THE LIST  (skim 1-by-1; verify each is still pre-token / still fits before pitch)
+================================================================================
+
+0. METRIC.XYZ  *** START HERE ***  [propAMM DEX / tokenized-stock execution]
+   What: a "propAMM" (professional market-maker AMM) DEX; rich LP yields, live on
+     Robinhood Chain (RHC) + others. Ties to the Yuki/execution-quality thread:
+     propAMM is what improves tokenized-stock execution vs plain AMMs.
+   Status: LIVE, PRE-TOKEN (Liquidity Rewards Airdrop running) -> data-hungry.
+   Why fit: your tokenized-stocks + DEX wheelhouse; pre-token = needs traction +
+     LP analytics; execution-quality angle is a rare, high-signal story.
+   ANALYST HOOK: LP APR SUSTAINABILITY (is 100%+ APR real or incentive-inflated),
+     real-vs-arb volume, EXECUTION QUALITY (spread vs market price by trade size
+     — the Yuki angle), liquidity depth by size, LP concentration, airdrop-farmer
+     vs sticky LP. "Is your rich APR pulling real liquidity or mercenaries?"
+   Find: x.com/metricxyz, metric.xyz, docs.metric.xyz. Contact: Mick (@mick_metric).
+   Contracts (ETH/BNB/Robinhood, same addr): Factory 0x2a53833cc95548cf52c7b159110e22D3a9018f32
+     | Router 0x02201E6f13c41506c7Bb635d7543F98826229aB7 | ExternalSwapExecutor
+     0x578C80DeC5D4Aa1F2879985e6e8d91Fc268e4AC2 (internal-vs-external fill = execution metric).
+   STATUS (2026-10-28): DM SENT to Mick. Pulse (BNB, router txns): ~2-wk-old deploy
+     (first activity Oct 13 -> NEW metric, not the dead DeFiLlama metric-v0). Growing:
+     unique traders single-digits -> 49-90/day last 4 days. FLAG Oct 18 = 3781 txns /
+     10 traders = bots/seeding, not growth. Next sample (ready): internal-vs-external
+     fill ratio (no ABI); then volume + realized spread (needs Swap event sig via SDK/
+     Herd/sample tx). Waiting on Mick's reply before deeper build.
+
+--- PERP DEXs (pre-token; airdrop/traction mode = they NEED this) ---
+1. EDGEX — StarkEx orderbook perps, Amber-incubated, pre-token.
+   Hook: trader cohorts, volume retention, real-vs-wash, points-program tracking.
+2. GRVT — ZK-privacy perps on ZKsync, pre-token.
+   Hook: volume/liquidity growth, points tracking despite privacy.
+3. PACIFICA — Solana perps, self-funded (no VC), pre-TGE w/ points program. #1 Solana
+   perp by volume, $100B+ cumulative. Team reportedly ex-FTX (Constance Wang) — UNVERIFIED,
+   heavy impersonation risk. Contact: Jose. x @pacifica_fi, docs.pacifica.fi.
+   ARCH: OFF-CHAIN orderbook matching, on-chain deposits/settlement (Hyperliquid-style)
+     -> Dune gives deposits/flows/users/concentration, NOT trades/volume (volume = their API).
+   Hook (visibility, NOT real-vs-farmed — can't cleanly separate off-chain + farming is a
+     given): net USDC flows in/out, retention, whale/depositor concentration, vault flows.
+   STATUS (2026-10-28): DM SENT to Jose + Dune link follow-up. Need Solana program/vault
+     addr from docs.pacifica.fi to run the deposits/real-users pulse (Dune solana).
+4. REYA — Reya Chain L2, shared-liquidity pools, pre-token.
+   Hook: pool utilization, LP PnL, is passive-LP yield real.
+5. OSTIUM — synthetic RWA perps (commodities/FX/stocks), Arbitrum, pre-token.
+   Hook: OI by asset, funding, RWA flow. (crosses your RWA lane)
+6. VARIATIONAL — P2P RFQ derivatives, Arbitrum, pre-token.
+   Hook: counterparty/flow analytics, maker concentration.
+7. HIBACHI — privacy-first ZK perps (Arbitrum/Base), pre-token.
+   Hook: growth + volume despite ZK, liquidity health.
+8. STANDX — Solana/BNB perps, yield-bearing DUSD margin, pre-token.
+   Hook: margin-asset flows, utilization, de-peg watch on DUSD.
+9. VEST — Arbitrum perps, zkRisk engine, pre-token.
+   Hook: listings velocity, volume quality, risk-engine behavior.
+10. DECIBEL (Aptos, testnet) / RISEX (Rise Chain, testnet) — ultra-early.
+   Hook: get in pre-mainnet; testnet traction + launch dashboard.
+
+--- BTCfi / RUNES (your ETCHY momentum; same stack) ---
+11. RUNESDEX (on Arch Network) — Bitcoin-native Runes AMM, $2M seed, early.
+   Hook: Runes holder/liquidity dashboard, whale + vault tracking (like ETCHY).
+12. ARCH NETWORK — BTCfi execution layer powering Runes DeFi.
+   Hook: ecosystem TVL/activity tracker, app growth.
+13. VELAR — perps + AMM on Stacks (BTCfi).
+   Hook: volume/liquidity, real-vs-incentive.
+14. ZEST PROTOCOL — Bitcoin lending on Stacks.
+   Hook: lending/borrow, utilization, collateral risk. (your lending muscle)
+
+--- TOKENIZED EQUITIES / RWA (adjacent to your Coinbase-stocks work) ---
+15. DINARI — tokenized US stocks (dShares), API-first.
+   Hook: holder distribution, mint/redeem flows, which stocks get demand.
+16. BACKED FINANCE — tokenized equities/ETFs (bTokens).
+   Hook: issuance vs secondary liquidity, holder base.
+17. SWARM — regulated tokenized stocks/bonds.
+   Hook: holder + DEX-liquidity tracking, flow.
+
+--- PREDICTION MARKETS (data-hungry, few good public dashboards) ---
+18. LIMITLESS — onchain short-duration prediction markets, newer.
+   Hook: volume/resolution/liquidity, trader behavior, market-maker health.
+19. MYRIAD MARKETS — onchain prediction markets (Abstract ecosystem).
+   Hook: market/trader analytics, volume, resolution accuracy.
+20. AZURO — prediction/betting liquidity infra.
+   Hook: pool + settlement dashboards, LP returns.
+
+--------------------------------------------------------------------------------
+PRIORITY ORDER TO REACH OUT
+--------------------------------------------------------------------------------
+1) METRIC.XYZ (top) -> 2) pre-token perps (EdgeX, GRVT, Pacifica, Reya, Ostium)
+-> 3) BTCfi/Runes (RunesDex, Velar, Zest) while ETCHY momentum is warm
+-> 4) RWA equities (Dinari, Backed, Swarm) -> 5) prediction markets.
+Reason: pre-token = funded + airdrop pressure + desperate for traction/real-vs-
+mercenary analytics = warmest cold-opens.
+
+CAVEAT: perps list + RunesDex + Metric search-confirmed now; Velar/Zest/Dinari/
+Backed/Swarm/Myriad/Azuro from knowledge -> verify still pre-token/fit before pitch.
+
+STATUS TRACKER (fill as you go): [ ] = not yet | (R) = reached out | (V) = verified
+  Metric(R) EdgeX[ ] GRVT[ ] Pacifica(R) Reya[ ] Ostium[ ] Variational[ ]
+  Hibachi[ ] StandX[ ] Vest[ ] Decibel[ ] RiseX[ ] RunesDex[ ] Arch[ ] Velar[ ]
+  Zest[ ] Dinari[ ] Backed[ ] Swarm[ ] Limitless[ ] Myriad[ ] Azuro[ ]
+================================================================================

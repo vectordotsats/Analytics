@@ -33,18 +33,30 @@ AAVE V4 HUB-AND-SPOKE (pooled):
   - One HubInstance holds shared liquidity per asset. Spokes (Main, Forex) add/
     draw. SUPPLIED assets DOUBLE AS COLLATERAL (pooled model, no separate
     collateral token like Morpho). assetId indexes each asset.
-  - Events (from decoded ABI): AddAsset(assetId,asset,decimals) [id->token map],
-    AddSpoke(assetId,spoke), Add(assetId,addr,assets,shares) [supply],
-    Remove [withdraw], Draw(assetId,addr,assets,shares) [borrow], Reclaim
-    [repay], Restore, UpdateAsset(assetId, liquidity/debt/rate...) = STATE per
-    asset, MintFeeShares, ReportDeficit/EliminateDeficit, TransferShares.
-  - UpdateAsset fires on nearly every interaction -> latest per assetId = exact
-    current liquidity + debt. (Confirmed BUSY: dozens/day as of 2026-09-28.)
+  - Events (VERIFIED field names from decoded ABI):
+    AddAsset(assetId, underlying, decimals)          -> assetId->token map
+    AddSpoke(assetId, spoke)
+    Add(assetId, spoke, shares, amount)              -> SUPPLY (net = liquidity in)
+    Remove(assetId, spoke, shares, amount)           -> withdraw
+    Draw(assetId, spoke, drawnShares, drawnAmount)   -> BORROW
+    Restore(assetId, spoke, drawnShares, ..., drawnAmount, premiumAmount) -> REPAY
+    Reclaim(assetId, reinvestmentController, amount) -> fee/reinvestment, NOT a
+      user repay. DO NOT count as repay.
+    UpdateAsset(assetId, drawnIndex, drawnRate, accruedFees) -> borrow INDEX+RATE
+      + fees. NOT total liquidity/debt. (Correction: earlier draft wrongly called
+      this a supply/debt state snapshot -- it is not.)
+    TransferShares, MintFeeShares, ReportDeficit/EliminateDeficit.
+  - Hub confirmed BUSY: dozens of events/day as of 2026-09-28.
 
-=> KEY DESIGN CALL (the fix for our old Morpho deposits-only gap): read STATE,
-   don't sum flows. Latest AccrueInterest (Morpho) / UpdateAsset (Aave) per
-   market/asset gives current supply & borrow directly. Flow-netting only as a
-   fallback. This is what gives us borrow + utilization cleanly, not just deposits.
+=> HOW THE TOTALS COME OUT (Aave is SHARE-based):
+   - Supply = Add.amount - Remove.amount (net underlying).
+   - Borrow = Draw.drawnAmount - Restore.drawnAmount (net underlying).
+   - drawnIndex (latest UpdateAsset) converts debt shares -> exact current debt.
+   V1 METHOD = net underlying flows. Valid NOW because market is ~2 weeks old ->
+   accrued interest negligible. This is NOT the general-case fix (flow-netting
+   broke on mature Morpho assets); the accrual-exact method = net shares x index,
+   flagged as v2. Validate both vs app.aave.com. Morpho side: AccrueInterest DOES
+   emit totalSupplyAssets+totalBorrowAssets (real state) -> use that for Morpho.
 
 ARCHITECTURE CAVEAT for an HONEST comparison:
   - "Collateral" is NOT apples-to-apples. Morpho = explicit separate collateral
@@ -112,8 +124,11 @@ STAGE 1  REFERENCE MAPS (tiny, materialize):
   Q_morpho_markets= from CreateMarket: marketId, loanToken, collateralToken, lltv.
 
 STAGE 2  CURRENT STATE (the core; materialize each):
-  Q_aave_state    = latest UpdateAsset per assetId -> total_liquidity, total_debt.
-                    Join Q_aave_assets -> token, decimals.
+  Q_aave_state    = net supply (Add.amount-Remove.amount) + net borrow
+                    (Draw.drawnAmount-Restore.drawnAmount) per assetId; join
+                    Q_aave_assets -> token, decimals; enrich price; utilization.
+                    (v2: net shares x drawnIndex for accrual-exact debt.)
+                    [SQL drafted 2026-09-29 -- see chat/build queries.]
   Q_morpho_state  = latest AccrueInterest per marketId -> totalSupplyAssets,
                     totalBorrowAssets. Join Q_morpho_markets; SUM to per-loanToken.
                     (Fallback if AccrueInterest unusable: net Supply-Withdraw /

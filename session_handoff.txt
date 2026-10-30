@@ -1,0 +1,94 @@
+================================================================================
+SESSION HANDOFF — Vector (paste into a new chat to continue)
+================================================================================
+Updated: 2026-10-26. All detail lives in primers in the connected folder:
+/Users/admin/Desktop/vector-sats/god-tier/Analytics/
+  morpho_stocks.txt | incentives_site_plan.txt | sql_basics.txt | etchy_prep.txt
+Read those first for full context; this is the index + current state + next steps.
+
+WHO / HOW I WORK
+- Vector: on-chain data analyst (@vectorsats, dune.com/vectordotsol, GitHub
+  vectordotsats), Lagos, builds Dune dashboards for reputation + paid gigs.
+- Prefs: brief/direct; DYNAMIC on-chain-derived SQL, NO hardcoding (self-updating).
+- Keep dense plaintext primers in the Analytics folder so work resumes cleanly.
+- Learning SQL formally now (see sql_basics.txt); narrate the "why" behind queries.
+
+ACTIVE PROJECT A — AAVE TOKENIZED-STOCK INCENTIVE TRACKER (main build)
+  Context: Aave DAO lit a 3% Merkl USDC incentive on Coinbase B20 stocks (Base),
+  Oct 13. RENEWED seamlessly -> now runs Oct 22 13:00 -> Oct 29 14:00 UTC. Goal:
+  a hosted site (Netlify) combining Dune (on-chain) + Merkl API, w/ write-ups.
+  SAVED DUNE QUERIES:
+    8915033 stock tokens | 8916698 stock supply/price/symbol | 8918917 Morpho mkts
+    8920878 Morpho section2 | 8922759 Aave assets(asset_id,token,decimals)
+    8925776 Aave state | 8927604 C1 Morpho-vs-Aave totals
+    8951939 Q-CLAIMS (Merkl claims, cum + cum-unique claimers)
+    Q-TVL (daily per-stock collateral, before/after Oct13) — BUILT, *** need its
+      query_id from Vector to wire downstream ***
+    Q-STATUS (allocated/claimed/unclaimed + eligible/claimed/not-claimed users) — BUILT
+    LTV-per-stock (collateralFactor from mag7spokeinstance dynamic config) — BUILT
+  KEY ANCHORS (Base): Merkl Distributor 0x3Ef3D8bA38EBe18DB133cEc108f4D14CE00Dd9Ae
+    (Claimed topic0 0xf7a40077ff7a04c7e61f6f26fb13774259ddf1b6bce9ecf26a8276cdd3992683;
+    user=topic1, token=topic2, amount=data). Reward wrapper (program-specific)
+    0xEfFd19F350F11C8e5F60d72eFFa9b1aa80C2db5B (6 dec). Campaign start ts 1791900000.
+    Budget = 7 hub campaigns x $4k = $28k CEILING; MAX_APR 3% -> only ~$5k actually
+    emits at this TVL; ~$23k never leaves treasury. The Oct-10 $100k "claim" = Aave's
+    own operator multisig (campaign creator), NOT retail.
+  FINDINGS: incentive 4.6x'd collateral (~$1.1M Oct12 -> ~$5M Oct15); 83% into
+    GOOGL+NVDA. Claims tiny (~$400+, 64 claimers of ~508 eligible ~12%). The $4.7M
+    "baseline" (8925776) was ALREADY post-incentive; true pre = ~$1.1M, so Morpho-vs-
+    Aave "100x" is incentive-inflated (~25x pre). Story written (cheap reflexive TVL;
+    watch Oct 29 for stay-or-leave).
+  OPEN / NEXT:
+    1. WHY GOOGL leads deposits: LTV hypothesis DISPROVEN (GOOGL 76%, only 3rd;
+       MSFT 79%/AAPL 78% highest but tiny deposits; META 65% lowest but 3rd). Next:
+       run the per-stock CONCENTRATION query (given, maps reserveid->symbol, top1/top3
+       share, holders) + FLOAT check (select symbol,supply_usd from query_8916698).
+       Hypothesis now: whales + available float, not attractiveness.
+    2. Build Q-FUNNEL: emitted = 3%/365 x daily collateral (from Q-TVL), cum, capped
+       at $28k; vs claimed (8951939); unclaimed = emitted-claimed. (needs Q-TVL id.)
+    3. Build the SITE (Netlify): Merkl API live + Dune JSON exports; waterfall of the
+       $28k (claimed/accrued-unclaimed/not-yet-emitted/never-emits) + TVL before/after
+       + participation. Status label: "Renewed — ends Oct 29."
+
+PROJECT B — MORPHO vs AAVE (Coinbase stocks, Base) "stock lending wars"
+  Title set: "Coinbase Tokenized Stocks". C1 totals = 8927604. C2 per-stock
+  collateral head-to-head drafted (full-outer on normalized symbol); C3 market
+  share / C4 headline pending. Paused when the incentive work took over. Caveat:
+  Aave numbers incentive-inflated (see above) — state the context. Full plan +
+  text-widget/footer in morpho_stocks.txt.
+
+PROJECT C — ETCHY GIG (potential paid on-chain analyst role)
+  See etchy_prep.txt (full). ETCHY = Etchy Zero, an AMM for REAL Bitcoin Runes
+  traded on Solana (Rune stays in a BTC Taproot vault; BTC events verified on
+  Solana via btc_relay light client). Flagship rune ETCHY*FUN. rune_pool program
+  D2gyR3iREHCwmTZNop4kz4ZfAjho5mY6h4QMbJqbEKyU. Real but early/centralized/unaudited.
+  CONTACT: "rook" (@alexrooq), claims co-founder. STATUS: awaiting verification via
+  the OFFICIAL @EtchydotFun account (he agreed). Role: holder distribution, whale
+  monitoring, LP/dump prevention. Flag: their code uses their own AMM + Jupiter, NOT
+  Raydium/Meteora as the recruiter said — ASK which assets/pools.
+  SAFETY (firm): monitoring is public-data + safe; but DON'T run their code/repos,
+  install apps, connect wallet, sign, or take their Rune as pay. USDC only; propose a
+  small PAID pilot upfront. 6 clarifying Qs + execution map + Runes-tracking (sec 3b)
+  in etchy_prep.txt.
+  RUNES TRACKING ANSWER: Dune has raw BTC but doesn't decode Runes -> use a Runes
+  indexer API (Hiro/UniSat/Best-in-Slot) for holders/balances; ETCHY's /bitcoin-
+  holders easiest; ord/runehook self-host = zero-trust. Vault BTC flows via Dune raw
+  bitcoin.* or mempool.space. Solana rune_pool -> Dune/raw Solana.
+  NEXT: once verified -> ask the 6 Qs, scope, propose paid USDC pilot (e.g. ETCHY*FUN
+  holder-distribution + whale-watch dashboard). Could sketch the poll-and-diff whale
+  bot + the holder-distribution data flow.
+
+SIDE THREADS
+- Job search: lean crypto-native remote (global) over generic DA (US/EU geo-locked).
+  Shortlist (Oct 2026): Gate, Mercuryo, Integra, Bitpanda, Blockchain.com; boards
+  unchaindata.xyz, web3.career, cryptojobslist. Lead apps with the Dune portfolio.
+- CV: styled 2-col PDF exists (Vector_OnChain_Data_Analyst_CV.pdf). Note: the sidebar
+  can trip strict ATS portals; Vector decided to keep one version. Offer plain ATS
+  twin only if a big-company portal application goes silent.
+- SQL: learning; sql_basics.txt is the tailored primer. Keep narrating the "why".
+
+IMMEDIATE NEXT STEP (pick up here): Vector moving to a new chat. Likely next = either
+(a) ETCHY: build the ETCHY*FUN holder-distribution + whale-watch flow once verified,
+or (b) Aave: run the GOOGL concentration+float check and build Q-FUNNEL/the site
+(needs Q-TVL query_id). Ask Vector which front to resume.
+================================================================================

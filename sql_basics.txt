@@ -1,0 +1,271 @@
+================================================================================
+SQL BASICS — for Vector, on-chain flavor (DuneSQL / Trino)
+================================================================================
+Goal: read any query and know what it does, debug a wrong number, and tweak a
+working query without help. Not a generic tutorial -- every example maps to the
+stock-lending work we've already shipped. Learn the floor first (sections 1-6),
+then the on-chain layer (7-9) that's actually your moat.
+Updated: 2026-10-13.
+
+--------------------------------------------------------------------------------
+0. THE ONE MENTAL MODEL
+--------------------------------------------------------------------------------
+A query is a PIPELINE. Rows go in from a table, pass through filters, get grouped,
+get shaped, come out. SQL is just: "which rows, and what do I want to see about
+them." Everything else is detail.
+
+A table = a spreadsheet. Rows (records) + columns (fields). That's it.
+
+--------------------------------------------------------------------------------
+1. THE SKELETON (every query is this)
+--------------------------------------------------------------------------------
+    select   <columns you want>
+    from     <which table>
+    where    <keep only rows matching this>
+    group by <collapse rows into buckets>
+    having   <filter the buckets>
+    order by <sort the output>
+    limit    <stop after N rows>
+
+Only select + from are required. The rest you add as needed.
+
+Minimal:
+    select * from morpho_blue_base.morphoblue_evt_borrow limit 10
+    -- "show me 10 full rows from the borrow-events table." * = all columns.
+    -- ALWAYS limit when exploring a new table, or you pull millions of rows.
+
+--------------------------------------------------------------------------------
+2. THE EXECUTION ORDER (the thing that fixes 90% of confusion)
+--------------------------------------------------------------------------------
+You WRITE it in the order above, but the engine RUNS it in this order:
+
+    1. from      (grab the table)
+    2. where     (throw out rows -- BEFORE any grouping/math)
+    3. group by  (bucket what survived)
+    4. having    (throw out whole buckets)
+    5. select    (compute the columns / aliases)
+    6. order by  (sort)
+    7. limit     (cut)
+
+WHY THIS MATTERS:
+- `where` can't use an alias you made in `select` -- select runs later, the alias
+  doesn't exist yet. Use `having`, or wrap in a subquery (see sec 6).
+- `where` filters raw rows (cheap, do your filtering here). `having` filters
+  AFTER aggregation (only for things like "buckets where sum > 1000").
+- This is why your filters go in `where` and your "util > 90%" goes in `having`.
+
+--------------------------------------------------------------------------------
+3. WHERE — picking rows (your most-used clause)
+--------------------------------------------------------------------------------
+    where amount > 0
+    where symbol = 'METAc'
+    where symbol in ('METAc','NVDAc','AAPLc')      -- any of these
+    where symbol like 'tDUMMY%'                     -- % = wildcard (tDUMMY...)
+    where block_time >= date '2026-09-18'
+    where amount > 0 and symbol <> 'USDC'           -- <> means "not equal"
+    where (a or b) and c                            -- parens group logic
+
+Gotchas you've already hit:
+- Text is 'single quotes'. "double quotes" = a COLUMN NAME, not text.
+  That's why "utilization(%)" needs double quotes -- the name has symbols in it.
+- `like '%evt_Add%'` with a LEADING % scans everything -> times out. Anchor it:
+  `like 'tDUMMY%'` (no leading %) is fine. For catalog lookups use exact match
+  (`table_schema = 'aave_v4_base'`), never a leading-wildcard LIKE.
+- NULL is "unknown", not 0. `where x = null` NEVER matches. Use `where x is null`
+  / `is not null`. And `coalesce(x, 0)` means "use x, but if it's null use 0."
+
+--------------------------------------------------------------------------------
+4. AGGREGATION — collapsing many rows into one number
+--------------------------------------------------------------------------------
+The functions: count(), sum(), avg(), min(), max().
+
+Whole-table (one number out):
+    select sum(collateral_usd) from query_8920878
+    -- total Morpho stock collateral, one row.
+
+Per-bucket (one number PER group) -- this is group by:
+    select symbol, sum(collateral_usd) as collateral
+    from markets
+    group by symbol
+    -- "for each symbol, add up its collateral." One row per symbol.
+
+THE RULE that trips everyone: every column in `select` must either be
+(a) inside an aggregate function, or (b) listed in `group by`. If it's neither,
+the engine asks "which row's value do you want?" and errors. That's why C2 does
+`max(symbol)` -- to pick one label per bucket without adding it to group by.
+
+count tricks:
+    count(*)                    -- how many rows
+    count(distinct borrower)    -- how many UNIQUE borrowers (your "who uses it")
+
+--------------------------------------------------------------------------------
+5. JOINS — stitching two tables by a shared key
+--------------------------------------------------------------------------------
+You have markets (has token address) and prices (has token + price). You want
+price next to each market. Join on the shared column.
+
+    select m.symbol, m.supply_units, p.price
+    from   markets m                       -- "m" = short alias for the table
+    join   prices  p  on p.token = m.token -- match rows where token equals
+
+TYPES (the only difference: what happens to rows with NO match):
+- join  (inner)      -> keep ONLY rows that match on both sides.
+- left join          -> keep ALL left rows; right columns = null if no match.
+- full outer join    -> keep EVERYTHING from both; nulls where no match.
+
+WHEN TO USE WHICH (from real decisions):
+- Price lookup where every token has a price -> inner join is fine.
+- "Show the stock even if it has no price yet" -> left join (markets on the left).
+- C2 Morpho-vs-Aave: `full outer join` so METAc (both), SPCXc (Morpho only), and
+  any Aave-only stock ALL survive. Inner join would silently drop the exclusives
+  -- which is the whole story. Pick the join by "what am I OK with disappearing?"
+
+Always prefix columns with the alias (m.token, p.price) once two tables are in
+play, or the engine complains the column name is ambiguous.
+
+--------------------------------------------------------------------------------
+6. CTEs — naming a step so queries stay readable (your bread and butter)
+--------------------------------------------------------------------------------
+A CTE (the `with` block) = a temporary named result you build on. Read top-down
+like a recipe instead of nesting parentheses inside-out.
+
+    with
+    adds as (                         -- step 1: total supplied per asset
+        select asset, sum(amount) as supplied
+        from equitieshubinstance_evt_add
+        group by asset
+    ),
+    priced as (                       -- step 2: attach price (uses step 1)
+        select a.asset, a.supplied * p.price as supplied_usd
+        from adds a join prices p on p.asset = a.asset
+    )
+    select * from priced              -- step 3: final output
+    order by supplied_usd desc
+
+Every query_<id> you reuse is the same idea, just saved on Dune instead of inline.
+`from query_8920878` means "treat that saved query's output as a table here."
+That's how C1/C2 stack on top of 8920878 + 8925776 without re-decoding anything.
+
+Subquery = a CTE's inline cousin. Used to dodge the alias rule from sec 2:
+    select * from (
+        select symbol, borrow/supply as util
+        from markets
+    ) where util > 0.9      -- util exists now because the inner query ran first
+This is also the fix for "QUALIFY not supported" in Trino -- wrap and filter by rn.
+
+--------------------------------------------------------------------------------
+7. DUNESQL / TRINO SPECIFICS (where generic SQL tutorials stop helping)
+--------------------------------------------------------------------------------
+Dune runs TRINO. Two table kinds:
+- DECODED tables: <project>_<chain>.<contract>_evt_<Event> and _call_<Fn>.
+  e.g. morpho_blue_base.morphoblue_evt_borrow. Columns = the event's fields,
+  already human-readable. Use these whenever the contract is decoded.
+- RAW tables: base.logs, base.transactions, base.traces. Untyped, every chain
+  has them. Use when a contract ISN'T decoded (sec 9).
+
+Finding tables (scoped, never leading-wildcard):
+    select table_name from information_schema.tables
+    where table_schema = 'morpho_blue_base'
+Finding a table's columns:
+    select column_name, data_type from information_schema.columns
+    where table_schema = 'morpho_blue_base' and table_name = 'morphoblue_evt_borrow'
+  ^ THIS is how you answer "what does 8920878 actually call that column" yourself.
+
+TYPES you'll meet:
+- varbinary  = raw bytes (addresses, hashes). Printed as 0x... Compare with 0x
+  literals directly: `where contract_address = 0x4ba3...`.
+- uint256    = huge unsigned integer (token amounts, 18/8/6 decimals baked in).
+- Decimals: on-chain amounts are integers. $1 USDC (6 dec) is stored as 1000000.
+  Divide by 1e6 (or 1e8 for the B20 stocks) to get human units. NEVER hardcode
+  the decimals -- read them from the token (your rule).
+
+CASTS (change a value's type):
+    cast(amount as int256)    -- THE underflow fix. uint256 can't go negative, so
+                              -- supply - withdraw underflows. Cast to SIGNED
+                              -- int256 first, then the net can be negative.
+    cast(x as double)         -- for division / decimals
+    cast(x as varchar)        -- to show bytes as text
+
+--------------------------------------------------------------------------------
+8. WINDOW FUNCTIONS — math ACROSS rows without collapsing them (your cum columns)
+--------------------------------------------------------------------------------
+group by collapses rows. A window keeps every row but adds a column computed over
+a "window" of related rows. Shape:
+
+    <fn>() over (partition by <group> order by <sort> <frame>)
+
+- partition by = restart the calc per group (like group by, but rows survive).
+- order by     = the running order within the partition.
+- frame        = which rows count, relative to the current one.
+
+Your running-total / "top row = grand total" trick:
+    sum(collateral_usd) over (
+        order by collateral_usd desc
+        rows between current row and unbounded following
+    ) as cum_collateral
+-- each row = itself + everything BELOW it. Sorted desc, so the first row sums
+-- all of them = the total. That's exactly the cum columns we built.
+
+The partition trick (C/Aave): `partition by (case when collateral_usd>0 then 1
+else 0 end)` kept the USDC pool row OUT of the stock-collateral running total by
+putting it in a separate partition. Windows are how you do "rank", "running sum",
+"% of total", "row number (rn)" -- all without losing the detail rows.
+
+min() over () with EMPTY parens = across the whole result (no partition). That's
+the `collateral_x_vs_smallest` divisor -- the smallest value over all rows.
+
+--------------------------------------------------------------------------------
+9. READING RAW LOGS (the decode layer -- the 20% that's your real edge)
+--------------------------------------------------------------------------------
+When a contract isn't decoded, you read base.logs yourself. An event log has:
+- contract_address : who emitted it.
+- topic0           : the event's signature hash (identifies WHICH event).
+- topic1/2/3       : the INDEXED params (max 3), each padded to 32 bytes.
+- data             : the non-indexed params, packed together.
+
+An address is 20 bytes but sits in a 32-byte topic, right-aligned (12 bytes of
+zero padding in front). So to pull the address out:
+    bytearray_substring(topic1, 13, 20)
+    -- start at byte 13 (skip the 12 pad bytes), take 20 bytes = the address.
+
+Your STOCK_TOKENS query is exactly this and nothing more:
+    select distinct bytearray_substring(topic1, 13, 20) as token
+    from base.logs
+    where contract_address = 0x4ba3e29e254f25e94e61c4c9d67b37027331534d  -- factory
+      and topic0 = 0x5c43a307...576ce1                                   -- the event
+-- "every token the B20 factory ever announced." Self-updating, zero hardcoding.
+That's the whole dynamic-enumeration trick. Once you can read a log, you can
+decode any contract on any chain before Dune does -- that's the moat.
+
+--------------------------------------------------------------------------------
+10. PRACTICE PATH (do these in order, in the Dune editor, on live data)
+--------------------------------------------------------------------------------
+1. `select * from morpho_blue_base.morphoblue_evt_borrow limit 5` -- eyeball columns.
+2. Add `where` -- borrows above some amount. Add `order by block_time desc`.
+3. `count(*)` all borrows. Then `count(distinct <borrower col>)`.
+4. group by: borrows per day (`group by date_trunc('day', block_time)`).
+5. Join that to prices for a USD column.
+6. Wrap it in a CTE; add a window running-total.
+7. Open one of YOUR saved queries (8920878) and narrate every clause out loud.
+   If you can explain each line, you own it.
+
+RULES OF THUMB:
+- Lost? Add `limit 10` and `select *` and just LOOK at the rows. Debugging is 90%
+  looking at actual data, not thinking.
+- Wrong number? Check decimals (sec 7) and NULLs (sec 3) first -- that's most bugs.
+- Build in small steps; run after each clause. Don't write 40 lines then run once.
+- Read the column list from information_schema instead of guessing names.
+
+--------------------------------------------------------------------------------
+CHEAT SHEET
+--------------------------------------------------------------------------------
+select ... from ... where ... group by ... having ... order by ... limit
+= 'text'   "column name"   <> not-equal   is null / is not null   coalesce(x,0)
+in (...)   like 'abc%'     between a and b
+count(*)  count(distinct x)  sum  avg  min  max       -- aggregates
+join / left join / full outer join ... on a.k = b.k   -- stitch tables
+with name as ( ... ), name2 as ( ... ) select ...      -- CTEs
+sum(x) over (partition by g order by s rows between ...)-- windows
+cast(x as int256)   bytearray_substring(topic1,13,20)  -- on-chain musts
+information_schema.columns where table_schema='..' and table_name='..' -- column names
+================================================================================

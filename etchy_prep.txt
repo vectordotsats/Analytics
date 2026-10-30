@@ -1,0 +1,284 @@
+================================================================================
+ETCHY — prep brief (potential on-chain analyst gig)
+================================================================================
+For: Vector. Purpose: go into the ETCHY conversation informed — know what they
+are, what they'll ask, how to execute, and what to clarify. Contact: "rook"
+(@alexrooq), claims co-founder; awaiting official @EtchydotFun verification.
+Created: 2026-10-25. Status: VETTING (do not run their code / connect wallet).
+
+--------------------------------------------------------------------------------
+0. WHAT ETCHY ACTUALLY IS (from their own GitHub: EtchydotFun/etchy-zero)
+--------------------------------------------------------------------------------
+Etchy Zero = an AMM for REAL Bitcoin Runes, traded on SOLANA. Not a wrapped
+token: the Rune itself stays in a Bitcoin Taproot vault, and Bitcoin events are
+verified on Solana. So it's a cross-chain Runes<->Solana trading system.
+  - Pools: each holds ONE Rune, trades it vs WBTC on a constant-product curve.
+    Virtual BTC reserve sets ~0.035 BTC starting mcap. Pool opens only after the
+    Rune's etching is proven; full premine must sit in the pool vault.
+  - Balances: accounts in the rune_pool program (NOT SPL tokens), keyed by owner.
+    Owner can be a Solana wallet OR a Bitcoin wallet (Taproot key, signed msgs).
+  - btc_relay: a Bitcoin light client on Solana (takes BTC headers, follows most-
+    work chain, checks PoW). rune_pool verifies Merkle proofs against it + applies
+    ord Runestone rules -> learns etchings, vault deposits, payouts.
+  - Vault: each pool's Runes sit at a Taproot address; key = threshold Schnorr key
+    held by an Internet Computer (ICP) canister. If a proven tx leaves a vault
+    SHORT, the program HALTS that pool. (<- critical event to watch.)
+  - Swaps/pricing: uses Jupiter (swaps), NEAR Intents (BTC in/out), Pyth (prices).
+  - "ETCHY*FUN" is itself a Rune traded in a pool (their flagship), not a minted token.
+  - NO separate ERC20/SPL "ETCHY token" described in the code.
+
+KEY IDENTIFIERS (Solana mainnet):
+  rune_pool program   D2gyR3iREHCwmTZNop4kz4ZfAjho5mY6h4QMbJqbEKyU
+  btc_relay program   9enwiwQwfPH5FSjcSo1fDViJwM8kQn5LpsrEq3uKXrbY
+  relay account       8jiPVfMUbrEFgbiB8CT2k5ZFrYui6kwQcnHaKpb6Zgxe
+  vault canister(ICP) j22zd-eyaaa-aaaao-qqkza-cai
+  WBTC quote token    3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh
+  lookup table        C6DTPV3SKeunnPvtbbzZbjLNFG2u5nhFN2ognYiyUN4g
+  API hints (from README): /holders, /bitcoin-holders, pool stats endpoints.
+
+*** DISCREPANCY TO RAISE: the recruiter said "track LP pools (Raydium/Meteora)".
+    But their own code uses their OWN rune_pool AMM + Jupiter — NOT Raydium/Meteora.
+    So either (a) they also have a separate SPL token/pool on Raydium/Meteora, or
+    (b) the recruiter is imprecise. ASK which exact assets/pools they want tracked.
+    Raising this early = shows you did the homework + tests their technical depth. ***
+
+--------------------------------------------------------------------------------
+1. LEGITIMACY READ (honest)
+--------------------------------------------------------------------------------
+- REAL build: public code, candid README, SECURITY.md, Apache-2.0, mainnet live.
+  Code existing + being honest about risks = mild positive vs pure scam.
+- BUT early + thin: 6 commits, 0 stars/forks, no public track record, small TG(554),
+  no news/CoinGecko, no named team found. Couldn't verify "rook"/@alexrooq anywhere.
+- CENTRALIZED TRUST (their own words): Etchy holds UPGRADE AUTHORITY on both
+  programs + controls the vault canister; upgrade timelock only "planned"; WBTC
+  backing is outside the system. Bridges/vaults = top hack targets.
+=> Treat as: real but unaudited, centralized, high-risk early project. The GIG
+   (public-data monitoring) is safe. DON'T: run their repos/apps, connect a wallet,
+   sign anything, hold their Rune as pay (cash USDC only). See job_opportunities notes.
+
+--------------------------------------------------------------------------------
+2. WHAT THEY'LL LIKELY ASK YOU TO DO (the role) + HOW TO EXECUTE
+--------------------------------------------------------------------------------
+A. HOLDER DISTRIBUTION (ETCHY*FUN rune + any pool runes)
+   Deliver: top-N holders, concentration (top10 %), holder count over time, both
+   Solana-side (rune_pool balance accounts) AND Bitcoin-side (Runes holders).
+   Execute: fastest = their /holders + /bitcoin-holders API -> dashboard/site.
+   Independent (your brand) = Solana raw (solana.account_activity / instruction
+   calls filtered to rune_pool program) + a Runes/ord indexer for the BTC side.
+
+B. WHALE MONITORING / "PREVENT DUMPS" (the headline ask)
+   Deliver: watchlist of large holders; early-warning when a whale accumulates or
+   moves to exit (big swap, WITHDRAWAL to Bitcoin = exit signal, transfer out).
+   Execute: track rune_pool large trades + balance deltas + vault withdrawal/
+   payout events. REAL-TIME alerting needs a BOT (Node/Python scheduled job hitting
+   chain/API -> posts to their TG/Discord) — Dune alone doesn't push alerts.
+   This is infra work (like the Netlify/scheduled-fn pattern from the Aave tracker).
+
+C. LIQUIDITY / POOL HEALTH
+   Deliver: curve reserves, mcap (BTC+USD), 24h volume, trade counts, depth; and
+   CRITICAL: vault shortfall / pool HALT events, large liquidity shifts.
+   Execute: rune_pool pool stats (API) + btc_relay/vault batch events. IF a separate
+   Raydium/Meteora pool exists -> Dune raydium / meteora_solana schemas (you've done
+   Meteora DLMM already — that ports).
+
+D. BITCOIN-LINKED EVENTS (your cross-chain edge; rare skill)
+   Deliver: relay header submissions, vault deposits/payouts, pool halts, proven
+   etchings. Execute: btc_relay program events on Solana + monitor the per-pool
+   Taproot vault addresses on Bitcoin via a Runes/ord indexer.
+
+E. GOVERNANCE / CONTROL SURFACE (risk monitoring)
+   Deliver: upgrade-authority actions, pause status, fee changes (up to 10%/side),
+   early-trading flags. Execute: watch program upgrades + config instructions.
+
+F. LAUNCH TRACKING (it's a launchpad)
+   Deliver: each new pool launch — first-buy reservations, early-trading window,
+   proven/unproven status, launch health. Execute: rune_pool pool-creation events.
+
+G. PUBLIC KPI DASHBOARD (their marketing/credibility)
+   Deliver: TVL, volume, pools, holders, fees — a Dune dashboard or hosted site.
+   This doubles as YOUR portfolio piece.
+
+--------------------------------------------------------------------------------
+3. TOOLING MAP
+--------------------------------------------------------------------------------
+- Their API (/holders, /bitcoin-holders, pool stats) = fastest for dashboards.
+  Ask for API docs + any key. (Read-only, safe.)
+- Dune Solana: solana.transactions / instruction_calls / account_activity filtered
+  to rune_pool program D2gy... (custom program -> likely NOT pre-decoded; parse raw).
+  Raydium/Meteora decoded schemas IF a separate pool exists.
+- Bitcoin Runes side: a Runes/ord indexer or Runes API (Dune bitcoin coverage is
+  thinner) for vault addresses + holders.
+- Real-time alerts: Node/Python scheduled bot -> TG/Discord webhook (infra, not Dune).
+- Herd: multi-chain contract/tx reads (check Solana/Runes depth).
+
+3b. RUNES TRACKING — HOW (Dune has raw BTC but does NOT decode Runes)
+  WHY NOT DUNE: Runes are encoded in OP_RETURN (Runestones); balances require the
+    ord state machine across every tx. No runes.balances/holders table on Dune.
+    Don't self-parse Runestones (that's building an indexer).
+  DECODED DATA -> use a RUNES INDEXER API (same pattern as Merkl in the Aave tracker):
+    - ETCHY's own /bitcoin-holders = easiest (their data; ask rook for API docs).
+    - NEUTRAL cross-check (indexer ETCHY doesn't control; reconstructs same state
+      from public BTC chain -> catches discrepancies): Hiro Runes API, UniSat open
+      API, Best-in-Slot. Example:
+        GET https://api.hiro.so/runes/v1/etchings/ETCHY%E2%80%A2FUN/holders
+        -> {total, results:[{address, balance}, ...]} -> compute topN / whales / diff.
+      UniSat: /v1/indexer/runes/{rune}/holders. (confirm exact paths in docs.)
+    - ZERO-TRUST (on-brand): self-host ord or Hiro runehook -> derive holders from
+      BTC blocks yourself. Fully reproducible; the flex.
+  VAULT FLOWS (ETCHY per-pool Taproot vaults): rune balance AT a vault = Runes API;
+    BTC value in/out (deposit/withdraw = exit signal) = Dune raw bitcoin.outputs/
+    inputs OR mempool.space API.
+  WHALE-WATCH PATTERN: poll a holders endpoint on a schedule, store snapshots, DIFF
+    -> new whales, balance jumps, exits (bot/scheduled fn, like the Netlify pattern).
+  SPLIT: Solana rune_pool -> Dune/raw Solana. Runes holders -> indexer API. Vaults
+    -> Runes API (balance) + Dune raw BTC (flows).
+
+--------------------------------------------------------------------------------
+4. CLARIFYING QUESTIONS TO ASK THEM (scope it right, show competence)
+--------------------------------------------------------------------------------
+1. Exactly which assets/pools? ETCHY*FUN rune only, all pool runes, or a separate
+   token? (And the Raydium/Meteora question above.)
+2. Real-time alerting, or periodic dashboards? (Changes infra + comp a lot.)
+3. Solana-side only, or Bitcoin Runes side too? (Cross-chain = more value, your edge.)
+4. Do I get API access + docs, or chain-only? (Read access only — never keys/wallet.)
+5. What's "prevent dumps" in practice — alert thresholds? who acts on alerts?
+6. Deliverable form: Dune dashboard, hosted site, a bot, or all?
+
+--------------------------------------------------------------------------------
+5. YOUR PITCH ANGLE
+--------------------------------------------------------------------------------
+- You're a rare fit: this needs SOLANA AMM analytics + BITCOIN RUNES + cross-chain
+  reasoning. Most analysts do one chain. You've done Solana (Meteora DLMM) AND
+  EVM lending AND dynamic decoding — the Runes/vault side is the same "decode the
+  machine" skill.
+- Lead with Dune (dune.com/vectordotsol) as proof; the Raydium/Meteora clarify
+  shows you read their code before the call.
+- Propose a small PAID pilot in USDC: e.g., a holder-distribution + whale-watch
+  dashboard for ETCHY*FUN, fixed fee, before any monthly retainer.
+================================================================================
+
+--------------------------------------------------------------------------------
+6. VERIFIED ON-CHAIN FINDINGS (2026-10-26) — real data, keyless
+--------------------------------------------------------------------------------
+Method: ordinals.com (public ord instance, NO API key, reachable) for rune
+identity + per-output data. mempool.space for raw tx. Everything below is read
+off the Bitcoin chain, independent of ETCHY's own API — i.e. unfalsifiable by them.
+
+BOTH RUNES EXIST AND ARE REAL:
+  ETCHY*FUN          rune id 971505:1052   etched 2026-10-15 03:59:48 UTC
+    supply 1,000,000,000 | premine 1,000,000,000 (100%) | divisibility 6 | symbol E
+    etching tx b8d27447ab0c63662a8e007edd373bf113acb8a94d889003d857b050bfecee67
+    (inscription-style etching: witness carries an ord envelope w/ name, symbol,
+     description + embedded image; parent inscription on the same tx)
+  ETCHY*THE*ALPACA   rune id 973099:7      etched 2026-10-25 16:56:31 UTC
+    supply 1,000,000,000 | premine 1,000,000,000 (100%) | divisibility 6 | symbol (llama)
+    etching tx 14650b2d759c0986bf95cf2d1a6ec65f9ac9698efa434f2d2872a8e6fe2d8a23
+  => They etched a NEW rune ONE DAY before the gig conversation. The launchpad is
+     LIVE and actively launching. Deliverable F (launch tracking) is real work, and
+     ETCHY*THE*ALPACA is a live launch we can track from block zero = the demo.
+
+*** THE REFRAME (most important finding) ***
+  100% PREMINE on both. Per their own code, a pool only opens once the etching is
+  proven AND the FULL PREMINE sits in the pool's Taproot vault. So at genesis ONE
+  Bitcoin address (the vault) holds 100% of the rune. Trading then happens in the
+  Solana rune_pool program against balance ACCOUNTS — not as BTC rune transfers.
+  CONSEQUENCE for deliverable A ("holder distribution"):
+    - BITCOIN-side holders are NOT the distribution. BTC side = the vault (~all of
+      supply) + whoever has WITHDRAWN out to Bitcoin. So BTC holder data is an
+      EXIT / withdrawal metric, not a holder-distribution metric.
+    - THE REAL holder distribution lives SOLANA-side: rune_pool balance accounts
+      keyed by owner (Solana pubkey OR Taproot key). That is the primary dataset.
+    - A BTC-side "top10 = 99%" chart would be TRUE AND MEANINGLESS. Anyone pulling
+      a Runes indexer and charting holders will ship exactly that wrong chart.
+      Saying this to rook first = the homework flex, same play as the Raydium/
+      Meteora catch. ADD IT TO THE QUESTIONS.
+  => Correct architecture: Solana rune_pool = distribution + whale watch (primary).
+     BTC vault = backing proof + exit signal (secondary). Cross-chain = the moat.
+
+TOOLING REALITY CHECK (tested, not assumed):
+  WORKS, keyless:
+    ordinals.com/rune/<NAME>      -> id, supply, premine, divisibility, symbol,
+                                     mint terms, burned, etching tx + timestamp.
+                                     (URL-encode the bullet as %E2%80%A2)
+    ordinals.com/runes            -> newest etchings, paginated (/runes/1, ...)
+                                     = free launch-detection feed.
+    ordinals.com/output/<txid>:<n>-> address, value, spent flag (per-output).
+    mempool.space/api/*           -> raw tx / BTC flows for the vault addresses.
+  DOES NOT WORK unauthenticated (all tested 2026-10-26, all refused):
+    api.hiro.so/runes/v1/*        -> 403/4xx without a key (docs imply keyless; it
+                                     is not in practice). FREE key available - get one.
+    unisat / ordiscan             -> key or login required.
+    api.etchy.fun/holders         -> NOT live at that path. The README's /holders +
+                                     /bitcoin-holders hints are NOT a public base URL.
+                                     *** ASK ROOK for the real API base + docs. ***
+  => NO keyless holders endpoint exists. The BTC-side holder feed needs ONE of:
+     (a) free Hiro API key (fastest), (b) ETCHY's own API (ask rook), or
+     (c) self-hosted ord with --index-addresses (zero-trust, the flex, slow).
+  NOTE: a public ord instance does not expose address->balance; holder distribution
+  is an INDEX, which is exactly why every one of these wants a key.
+
+SITE POSITIONING (etchy.fun, read 2026-10-26): "The first fully Bitcoin-native
+  launchpad on Solana" — trade memecoins from a Bitcoin wallet, launch Runes, cash
+  out in BTC. No API docs or endpoints published. Only social handle = @EtchydotFun.
+
+OPEN BLOCKERS (what gates the build):
+  B1. @EtchydotFun verification of rook — still outstanding. Gates ENGAGEMENT only,
+      NOT the build: all of the above is public data.
+  B2. API base + docs for ETCHY's own endpoints (ask rook).
+  B3. Solana-side read route for rune_pool D2gyR3iREHCwmTZNop4kz4ZfAjho5mY6h4QMbJqbEKyU
+      — custom program, so NOT pre-decoded on Dune: parse raw Solana
+      (solana.instruction_calls / account_activity) or hit a Solana RPC directly.
+
+--------------------------------------------------------------------------------
+7. *** MAJOR CORRECTION (2026-10-27): A SEPARATE $ETCHY SPL TOKEN EXISTS ***
+--------------------------------------------------------------------------------
+The Raydium/Meteora line was NOT recruiter imprecision. Rook's own opening message
+(Telegram, seen 2026-10-27) reads verbatim:
+  "We are looking for an on-chain analyst to track holder distribution, monitor
+   whale wallets, and track our liquidity pools (Raydium/Meteora) to prevent dumps."
+So the ask came from the self-claimed CO-FOUNDER, not a recruiter.
+
+FOUND (via Solana Compass, 2026-10-27 — third-party aggregator, NOT yet verified
+on-chain and NOT yet confirmed by ETCHY as officially theirs):
+  $ETCHY SPL token   mint GM8EysYT8NRSsoULdeYShbRsUdhoUoiB9EN4eW3YETCH
+    (vanity address ground to end in "ETCH" = deliberate branding)
+    name "Etchy" / symbol ETCHY | mcap ~$1,142,164 | holders ~1,386
+    POOLS: METEORA ONLY — damm v2, DLMM, and dbc, all paired vs USDC.
+           NO Raydium / Orca / pump.fun pool listed.
+    Liquidity figures CONFLICT on the page: ~$5,881 headline vs ~$145K summing the
+    per-pool table. Trust NEITHER until verified on-chain. (Likely headline = one
+    pool, or a stale/partial read.)
+    No website or socials linked on the aggregator page -> official status UNPROVEN.
+
+WHAT THIS CHANGES (supersedes the section-6 reframe for the likely scope):
+  The gig is almost certainly about THIS SPL TOKEN, not the ETCHY*FUN rune.
+  "Holder distribution + whale wallets + LP pools to prevent dumps" describes a
+  standard Solana memecoin exactly, and maps 1:1 onto the SPL token w/ Meteora LPs.
+  It does NOT describe the rune_pool architecture (where balances are program
+  accounts and 100% of the rune premine sits in a Taproot vault).
+  => The section-6 conclusion ("Solana rune_pool is the real distribution") holds
+     ONLY IF the asset is the rune. If it's the SPL token, scope is far more
+     tractable and lands directly in existing skillset:
+       - Meteora DLMM work ALREADY DONE (meteora_primer.txt) PORTS DIRECTLY.
+       - Dune has decoded meteora_solana schemas -> no raw parsing needed.
+       - Holder distribution = SPL token accounts (standard, well-trodden on Dune).
+       - dbc = Meteora Dynamic Bonding Curve -> launch/graduation tracking angle.
+  => BOTH assets may be in scope (token + rune). That is a SCOPE question, not an
+     assumption to make. Priced differently too: two assets, two chains = two jobs.
+
+STILL UNVERIFIED / ASK THEM (sharpened Q1):
+  "Is GM8EysYT8NRSsoULdeYShbRsUdhoUoiB9EN4eW3YETCH your official token? And is the
+   scope that token, the ETCHY*FUN rune, both, or every rune launched on Etchy?"
+  Naming the mint address back to them is the strongest possible homework signal —
+  and if they hesitate or the mint doesn't match, that is itself the answer.
+  NOTE the Raydium half is still unexplained: pools are Meteora-only. Ask if a
+  Raydium pool exists / is planned, or if "Raydium/Meteora" was loose shorthand.
+
+VERIFICATION CLOCK: rook said "I'm a co-founder. Yes, no problem, i can confirm
+  that however is most convenient for you." (Oct 25, 09:02). Vector named the
+  method 16 min later (official @EtchydotFun X DM). Nudged Oct 26 17:12. As of
+  Oct 27 06:05 — still nothing, ~2 days on a 30-second task he volunteered.
+  Not damning on its own (small team, timezones) but it IS the cheapest possible
+  trust signal and it is going unpaid. Hold the line: no code, no wallet, no repos,
+  USDC only, paid pilot. Decision rule: if the official-account confirm doesn't
+  land, don't invest build time — public-data research is fine, bespoke work is not.

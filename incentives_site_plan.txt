@@ -1,0 +1,178 @@
+================================================================================
+AAVE x COINBASE STOCKS — INCENTIVES TRACKER (live site, not Dune-hosted)
+================================================================================
+For: Vector. Purpose: a hosted site (Netlify) that combines Dune on-chain data +
+Merkl live API into one sweet-looking incentives dashboard w/ write-ups. The
+Base stock-lending reputation piece. Chain = BASE. Created: 2026-10-14.
+
+--------------------------------------------------------------------------------
+0. THE MENTAL MODEL (what sits where)
+--------------------------------------------------------------------------------
+Dune  = the SQL DATA ENGINE (stays). We keep writing queries there.
+Merkl API = the LIVE EMISSION truth (daily $ distributed, APR, budget).
+The SITE = the PRESENTATION layer that pulls from both + our write-ups. Netlify.
+So we are NOT abandoning Dune -- Dune is the backend; the site is the frontend.
+
+WHY HYBRID (not pure Dune): Aave pays these incentives through MERKL, which is
+computed OFF-CHAIN and claimed ON-CHAIN. There is no on-chain "X emitted today"
+event. On-chain you only see (a) campaign funded, (b) users CLAIM. So:
+  - "daily distributed / APR / budget"  -> Merkl API (the schedule lives there).
+  - "actually claimed on-chain / who / when / TVL moved" -> Dune (our verify layer).
+The GAP between emitted (Merkl) and claimed (Dune) = incentive efficiency = story.
+
+--------------------------------------------------------------------------------
+1. TRACKING ANCHORS (Base) -- the addresses to build on
+--------------------------------------------------------------------------------
+MERKL DISTRIBUTOR (claims)  0x3Ef3D8bA38EBe18DB133cEc108f4D14CE00Dd9Ae
+  CONFIRMED via Herd: contract name "Distributor", deployed 2023-08-04.
+  ONE distributor serves ALL Merkl campaigns on Base (not Aave-only).
+  Event Claimed(address user idx, address token idx, uint256 amount):
+    topic0 = 0xf7a40077ff7a04c7e61f6f26fb13774259ddf1b6bce9ecf26a8276cdd3992683
+    user  = topic1   |   reward token = topic2   |   amount = data (uint256)
+  -> Dune claim query: base.logs where contract_address = distributor
+     and topic0 = <above> and topic2 = <reward token, left-padded to 32 bytes>.
+
+REWARD TOKEN (filter claims by this)  0xEfFd19F350F11C8e5F60d72eFFa9b1aa80C2db5B
+  CONFIRMED via Herd (2026-10-15): NOT canonical USDC. It's a MERKL WRAPPER,
+  contract "PullTokenWrapperAllowImmutable", deployed 2026-09-25 (Aave stock
+  market launch day). Has token() -> real underlying USDC; pulls real USDC to the
+  claimer at claim time. decimals mirror USDC = 6 (read dynamically, don't hardcode).
+  *** CORRECTED 2026-10-15 (on building Q-CLAIMS): wrapper is NOT stock-exclusive. ***
+  A 100,000 USDC Claimed on 2026-10-10 (PRE-campaign) by multisig
+  0x89587ebe7cFF64c6527fE2Deccc3521D75763E8D (3-of-5, holds the 100k ~untouched)
+  proves the SAME wrapper was used by an EARLIER Aave-on-Base Merkl campaign. So:
+    - Filtering Dune claims by token alone also catches other campaigns on this wrapper.
+    - FIX: bound claims to the stock-campaign window: block_time >= campaign start
+      (Merkl startTimestamp 1791900000 ~= 2026-10-12 14:00 UTC). This drops the Oct-10
+      seed cleanly (it predates the campaign).
+    - Even in-window, treat Merkl API (keyed by campaignId) as the per-campaign
+      AUTHORITY for emitted/claimed; Dune = wallet-level behavior + verification.
+  DATA HYGIENE: segment non-organic claimers (large round claims / multisigs /
+    treasuries) from retail adoption -- show concentration, don't let one whale
+    read as "adoption." The Oct-10 100k multisig is the first example (document it;
+    it is itself a narrative-vs-reality finding).
+  Claimed event has NO campaignId -> on-chain granularity = per reward-token, window-
+    bounded. Per-stock claimed = Merkl API. (Per-stock TVL before/after = pure Dune.)
+  Decimals = 6 CONFIRMED (claim 100000000079 raw = 100000.000079 USDC).
+
+DISTRIBUTION CREATOR (budget funded)  canonical ~0x8BB4C975Ff3c250e0ceEA271728547f3802B36Fd
+  *** VERIFY on Base via Herd ***. Optional -- budget is cleaner from Merkl API.
+  Only needed if we want on-chain proof of the funded budget.
+
+MERKL API (live)  https://api.merkl.xyz/v4/opportunities?chainId=8453   (Base=8453)
+  Filter to the Aave stock supply opportunities. Each opportunity gives:
+  apr, dailyRewards, rewardsRecord.token (symbol+addr), identifier (the aToken/
+  instance addr), startTimestamp, endTimestamp, id (opportunityId), campaignId.
+  Public API, no key. Fallback if CORS blocks the browser: proxy via a Netlify
+  function.
+
+STOCK TOKENS + BASELINE (reuse what we built):
+  query_8915033 = 7 stock tokens (factory enum). query_8916698 = prices/symbols.
+  query_8925776 = AAVE STATE snapshot = our PRE-INCENTIVE baseline (~$4.7M coll
+  BEFORE Oct 13). *** LOCK A DATED SNAPSHOT of collateral as of ~Oct 12-13 ***
+  so the before/after chart has a real "before". This is the chart nobody else
+  has, because nobody snapshotted yesterday.
+
+--------------------------------------------------------------------------------
+2. LIVE CAMPAIGN SNAPSHOT (from Merkl API, 2026-10-14)
+--------------------------------------------------------------------------------
+Reward: USDC, ~3.0% APR, supply-side on the 7 stock collaterals.
+Window: start 1791900000 (~Oct 13) -> end 1792674000 (~Oct 22) = ~9 days.
+Daily emission per stock (one side; hub+spoke are shown twice -- DON'T double-count):
+  METAc  ~$128/day     NVDAc ~$111     GOOGLc ~$103     TSLAc ~$54
+  AAPLc  ~$49          AMZNc ~$31      MSFTc  ~$23
+  => ~$500/day total  ->  ~$4.5k total budget over 9 days.
+  *** VERIFY hub-vs-spoke: is it ONE campaign per stock shown as two opportunities
+  (hub instance + mag7 spoke instance), or two real emissions? If two -> ~$9k. ***
+THE ANGLE: a "$4.5k, 9-day" incentive behind a big "Aave incentivizes tokenized
+stocks" headline. Narrative vs reality.
+
+--------------------------------------------------------------------------------
+3. DUNE QUERIES TO BUILD (the on-chain layer, export to site as JSON)
+--------------------------------------------------------------------------------
+Q-CLAIMS = query_8951939  *** BUILT & VALIDATED 2026-10-15 ***
+  base.logs, distributor 0x3Ef3..9Ae + Claimed topic0 + topic2=wrapper token,
+  block_time >= from_unixtime(1791900000) (campaign start; drops Oct-10 seed).
+  Cols: day, claimed_usdc (raw/10^dec, dec read dyn w/ fallback 6), claim_txns,
+  claimers_today, new_claimers, cum_claimed_usdc, cum_unique_claimers. order day desc
+  (top row = running total). CUM-UNIQUE trick: first_seen=min(day) per wallet ->
+  new_claimers = claimers whose first_day=day -> running sum = cumulative unique.
+  Snapshot: Oct14 15 claimers(15 new) $7.14 | Oct15 15 claimers(13 new,2 repeat)
+  $36.50 -> cum $43.64, 28 unique. Organic, mostly-fresh crowd, tiny.
+Q-CLAIMERS (concentration):
+  group by user (topic1) -> claimed per wallet, top-N share. Real users vs few MMs?
+Q-TVL-BEFORE-AFTER = query_<TBD>  *** BUILT & VALIDATED 2026-10-15 (the needle chart) ***
+  per-stock collateral_usd daily, hub add/remove nets (evt tables: assetid, amount,
+  evt_block_date; NOTE raw col = assetid lowercase, NOT asset_id) * FIXED price
+  (isolates deposit flow from price). Spine from Sep 24 (correct baseline), display
+  from Oct 6. Window cum over day per token. Decoded tables = cheap, no timeout.
+  FINDINGS: total stock collateral ~$1.09M (Oct 12, TRUE pre-incentive) -> ~$5.06M
+    (Oct 15) = ~4.6x in 3 days. Incentive clearly moved deposits.
+    CONCENTRATION: GOOGLc 174k->1.93M (~11x) + NVDAc 284k->1.83M (~6x) = ~83% of
+    the ~$3.97M new capital. META/AAPL/AMZN/MSFT/TSLA each only ~1.8-2.1x.
+    ANOMALY: METAc had the HIGHEST emission (~$128/day) but only 2x'd; GOOGL/NVDA
+    (lower emission) exploded -> NOT pure APR-chasing. Probe: whales vs token supply.
+  *** CORRECTION: the ~$4.76M from query_8925776 was ALREADY POST-INCENTIVE (run
+    mid-surge ~Oct 14-15), NOT a pre-incentive baseline. TRUE pre-incentive = ~$1.1M
+    (Oct 12). So Morpho-vs-Aave "~100x" is incentive-inflated: pre-incentive gap was
+    ~$1.1M/$43k ~= 25x; the rest was bought in 3 days with the 3% carrot. ***
+  NEXT HYGIENE: depositor-concentration check on GOOGL/NVDA Oct-15 jumps (whales?).
+Q-EFFICIENCY (optional, derived): emitted (Merkl) vs claimed (Dune) over time.
+
+--------------------------------------------------------------------------------
+4. SITE ARCHITECTURE
+--------------------------------------------------------------------------------
+STACK: Vite + React + Recharts (or Next.js static). Host: Netlify. Vector knows
+  Next/TS already -> low friction.
+DATA WIRING (v1 -- simplest, free, ship fast):
+  - Merkl: fetch LIVE client-side from api.merkl.xyz on page load (CORS fallback:
+    small Netlify function proxy at /api/merkl).
+  - Dune: EXPORT each query's results to /public/data/<name>.json, commit to repo.
+    Refreshes when you redeploy. Good enough for a 9-day campaign.
+DATA WIRING (v2 -- auto-refresh, optional upgrade):
+  - Netlify SCHEDULED FUNCTION (hourly) -> calls Dune API (needs Dune API key,
+    paid tier) + Merkl API -> writes combined JSON to Netlify Blobs or Supabase
+    (Vector has Supabase) -> frontend reads that. Makes it feel truly live.
+  - Keep the Dune API key in a Netlify env var / function, NEVER in the frontend.
+RECOMMENDATION: ship v1 now (campaign is only ~9 days), add v2 only if it gets
+  traction or becomes a recurring product.
+
+--------------------------------------------------------------------------------
+5. PAGE LAYOUT (sections / tiles)
+--------------------------------------------------------------------------------
+HERO strip (KPIs): "Incentives LIVE" · ~$500/day · 3% APR · ~$4.5k budget ·
+  % distributed so far · days left. (Merkl-driven, updates live.)
+1. Daily incentives distributed (bars) + cumulative line.           [Merkl]
+2. APR per stock (bars) — is it flat 3% or weighted?                 [Merkl]
+3. Emitted vs Claimed over time (the efficiency gap).          [Merkl + Dune]
+4. Collateral TVL per stock, BEFORE vs AFTER Oct 13 — the money chart. [Dune]
+5. Who's claiming — claimer count + top-wallet concentration.        [Dune]
+6. Write-up blocks between sections (the "is it real" narrative).
+FOOTER: Built by Vector · x.com/vectorsats · dune.com/vectordotsol · links
+  Coinbase / Aave / Merkl. (Match the Dune text-widget footer.)
+DESIGN: dark, glow accents, one accent color per data source (Merkl vs on-chain),
+  read dataviz skill before building charts. Mobile-friendly.
+
+--------------------------------------------------------------------------------
+6. BUILD ORDER (milestones)
+--------------------------------------------------------------------------------
+M1. Verify: reward token (campaign-specific?), hub/spoke double-count, Distribution
+    Creator addr. Lock the pre-incentive collateral snapshot (dated).
+M2. Dune: write Q-CLAIMS + Q-CLAIMERS + Q-TVL-BEFORE-AFTER. Validate.
+M3. Prototype the UI look as a Claude artifact (fast iteration) w/ mock data.
+M4. Wire Merkl live fetch; drop in Dune JSON exports. Combine.
+M5. Write-ups + footer + polish. Deploy to Netlify. Share on X.
+(Workflow: prototype in-chat as an artifact first, then hand off the repo for
+ Netlify so Vector owns it as a portfolio piece.)
+
+--------------------------------------------------------------------------------
+7. RISKS / GOTCHAS (banked)
+--------------------------------------------------------------------------------
+- Early days = near-ZERO on-chain claims (Merkl posts Merkle roots periodically;
+  users claim later/in batches). Don't read empty Claimed events as a bug -- the
+  Merkl API carries the story first; Dune catches up.
+- Hub vs spoke duplication in Merkl opportunities -> don't double-count daily $.
+- Reward-token filtering: if token is shared, Dune claims aren't Aave-isolated.
+- Dune API live-fetch needs a paid tier; v1 uses static JSON to avoid that.
+- Non-US geo gate on the market is unchanged by incentives (context for write-up).
+================================================================================
