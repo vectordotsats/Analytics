@@ -1,0 +1,83 @@
+================================================================================
+OPERATING DOCTRINE — how Vector (and Claude) work
+================================================================================
+Created: 2026-11-08. The north star for every protocol, pitch, and build in this
+folder. Read before starting work or writing an outreach message.
+
+--------------------------------------------------------------------------------
+WHO VECTOR IS
+--------------------------------------------------------------------------------
+- On-chain data analyst + content creator. @vectorsats on X, dune.com/vectordotsol,
+  GitHub vectordotsats. Based in Abuja.
+- Background: smart-contract auditing + community management (ex-CM at Reservoir).
+- Builds Dune dashboards to establish public reputation and win PAID data contracts
+  with early DeFi protocols.
+- How he works: dense plaintext primers per protocol (this folder); dynamic,
+  on-chain-derived SQL, NO hardcoding (self-updating); narrate the "why".
+- The goal: get better, think like a top analyst, work with the best teams and the
+  sharpest minds in the space. Claude's job is to push him up that curve, not just
+  execute tasks.
+
+--------------------------------------------------------------------------------
+THE CORE SHIFT: PROBLEM SOLVER, NOT DASHBOARD BUILDER
+--------------------------------------------------------------------------------
+"Not just dashboard builders but problem solvers." Dashboards and queries are
+table stakes — anyone (Claude included) can write a query now. The edge is reading
+what the data SAYS and turning it into a DECISION for a specific person.
+
+Sell intelligence + monitoring + decisions:
+  - Who's REALLY using you — organic vs mercenary / arb / wash / farmed flow.
+  - Holder & whale distribution, concentration, who's positioned to dump.
+  - Liquidity / LP health, where depth is thin, execution quality vs market.
+  - Is the growth real or rented (incentives / airdrop farming).
+  - Early-warning alerts BEFORE things move against them (exits, liquidity pulls).
+  - Dashboards are the DELIVERY of the above, never the product itself.
+
+--------------------------------------------------------------------------------
+WHAT TWO SENIOR OPERATORS SAID (2026-11-06) — the source of this doctrine
+--------------------------------------------------------------------------------
+ALEXANDER GRABLEVSKI — analytics lead at Symbiotic:
+  - Companies never need dashboards/tools for their own sake. They want to be
+    INFORMED to make better decisions, or to do marketing. Extract value and bring
+    it to the business.
+  - Queries are commoditized ("claude is able to write queries now"). The scarce
+    part is confidence, business thinking, and soft skills.
+  - Most findings lead nowhere — that's the frustrating part. Make them land by
+    thinking about WHO you're pitching to:
+      * Marketers  -> want CONTENT (shareable, narrative, mindshare).
+      * Founders   -> want STRATEGY: competitors, market trends, threats — specific
+        to THEM, not generic. Pitch on behalf of the person you're pitching to.
+
+VINCENT CHARLES — ex-Binance:
+  - Analytics foundations + industry/domain knowledge are still required, but the
+    DIFFERENTIATOR now is DATA ENGINEERING.
+  - Index your own data, build your own pipelines. Don't be dependent on whatever a
+    third party (Dune, an indexer) has already decoded — own the stack end to end.
+
+--------------------------------------------------------------------------------
+HOW THIS CHANGES THE WORK (operating rules)
+--------------------------------------------------------------------------------
+1. START FROM THE DECISION, NOT THE CHART. For every metric ask: "what decision
+   does this let someone make, and who is that someone?" If the answer is "none",
+   it's vanity — cut it or reframe it.
+2. TAILOR THE OUTPUT TO THE READER. Same data, two packages: a content angle for
+   the marketer, a strategic/competitive read for the founder. Say which you're
+   building and for whom.
+3. MAKE FINDINGS LAND. A number is not a finding. "Aave's stock TVL is incentive-
+   inflated ~25x pre-incentive, and claims are tiny (~12% of eligible)" is a
+   finding — it tells someone what's real and what to do.
+4. LEAN INTO DATA ENGINEERING. Prefer owning the pipeline: dynamic enumeration from
+   factories/events, self-updating queries, materialized tables, raw-log decoding
+   when a spellbook is missing. This is the moat (Vincent) — invest here, and build
+   toward indexing our own data, not just querying Dune's.
+5. KEEP THE PROBLEM-SOLVER PITCH (see targets.txt). Lead with a specific, real
+   on-chain observation about THEM; offer monitoring + alerts + decisions; dashboards
+   as delivery. Verify who you're talking to; never run their code / connect wallet /
+   sign; USDC only; propose a small paid pilot.
+6. FLAG POST-WORTHY MOMENTS. When a build surfaces a sharp, public-worthy finding,
+   call it out so Vector can share it (he won't always post, but wants the nudge).
+
+ONE LINE: "I help you see what your on-chain data is actually saying, and turn it
+into decisions — monitoring + alerts, with dashboards as the delivery." Everything
+in this folder serves that.
+================================================================================
