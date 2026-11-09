@@ -143,12 +143,39 @@ voice (lead with Coinbase stocks + Aave-vs-Morpho teardown as proof).
   you call the turn. Strong even before the dashboard ships.
 
 --------------------------------------------------------------------------------
+BUILD LOG — CONFIRMED SCHEMA + ADDRESSES (2026-11-09)
+--------------------------------------------------------------------------------
+Midnight decoded on BOTH chains, identical schema: morpho_midnight_base +
+morpho_midnight_ethereum. Use EVENT tables for collateral TVL (cleaner than calls):
+  midnight_evt_supplycollateral  (+) : collateral(varbinary=TOKEN addr), assets
+      (uint256 amount), caller, onbehalf, id_(market id), evt_block_time.
+  midnight_evt_withdrawcollateral(-) : same shape + receiver.
+  -> collateral token comes straight off the event = no hardcoding, no market JSON.
+  Decimals: tokens.erc20 (by chain+contract). Price: prices.usd (both chains, daily
+  avg, fwd-fill). v1 does NOT subtract liquidation seizures (midnight_evt_liquidate)
+  — if TVL overshoots DefiLlama, add that outflow.
+  Other markers: midnight_evt_marketcreated(id_, market), midnight_call_take (borrow;
+  evt_take still the broken one — use call_take), midnight_evt_liquidate, fee calls.
+
+Addresses:
+  Midnight contract: Base <confirm> | ETH 0x471686c42792F93528B000beF54bC10E3aa2045f
+  Tenor BASE: TenorAdapter 0x5675892d48828872fbFD2720489f98b42f48138F,
+              Bundler3 0x6BFd8137e702540E7A42B74178A4a49Ba43920C4
+  Tenor ETH : TenorAdapter 0xFc6722B202Eb47576dA35692EB2dd487102De7e1,
+              AuthorizationAdapter 0xa55f66f0e5bAF1C9b36BBe49cb7Fb645FA5089c6,
+              Bundler3 0x6566194141eefa99Af43Bb5Aa71460Ca2Dc90245,
+              MidnightSupplyCollateralCallback 0x93cfC1178C3cc6c315F6505C3A927B7974425188
+  (Tenor-ETH may route collateral via bundler/callback, so the evt caller might not be
+  the adapter — Step 2 probes distinct callers per chain to pin the Tenor set exactly.)
+
+--------------------------------------------------------------------------------
 NEXT STEP
 --------------------------------------------------------------------------------
-Phase 1, Step 1: run the morpho_midnight_base schema probe (collateral call tables
-+ market->collateral mapping), then build MIDNIGHT_TVL_DAILY and validate the
-latest day vs DefiLlama/app.morpho.org. Then Step 2 (Tenor subset) and Step 3 (share
-+ movements).
+Phase 1 Step 1 DONE (schema confirmed). Now: run MIDNIGHT_TVL_DAILY (net collateral
+present, USD, cols base/eth/total off the evt tables) and validate latest day vs
+DefiLlama/app.morpho.org. Then Step 2 = caller-distribution probe per chain (pins the
+Tenor router set + doubles as Phase-2 builder breakdown) -> Tenor TVL subset -> Step 3
+share + movements.
 
 Sources: morpho.org (Midnight live / Midnight Effect newsletters), theblock.co
 (Base launch 2026-07-21; offered-capital), thedefiant.io (Ethereum expansion
