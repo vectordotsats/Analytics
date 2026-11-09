@@ -67,9 +67,11 @@ materialize small daily tables; label precisely (TVL vs active loans vs util);
 validate every number vs app.morpho.org / MidnightScan / DefiLlama before shipping.
 
 TVL DEFINITION (matches DefiLlama): Midnight TVL = net COLLATERAL present in the
-Midnight contract, enumerated from MarketCreated, SUMMED ACROSS EVERY CHAIN Midnight
-is on (Base + Ethereum confirmed; check Arc + any new). Base-only undercounts the
-denominator and OVERSTATES Tenor's share — the denominator must be all-chain.
+Midnight contract, enumerated from MarketCreated. Midnight is on EXACTLY 2 chains:
+BASE + ETHEREUM (confirmed 2026-11-09; no Arc). Track each chain in its OWN COLUMN
+(base / eth / total) so we watch growth per chain, not a blended sum — Base-only
+would overstate Tenor's share. Tenor is now FULLY LIVE on BOTH Base and Ethereum
+(not the early-Sept ETH dust).
 (If we later want lender offered-capital or taken-principal as separate series, add
 them explicitly — don't conflate.)
 
@@ -78,31 +80,28 @@ Goal: two daily TVL series (Midnight-wide vs Tenor-routed) on one date spine, th
 Tenor share % and day-over-day % movements. "How much of Midnight is Tenor, and is
 Tenor gaining or losing ground as Midnight grows."
 
-  STEP 1 — Schema probe + Midnight-wide daily collateral TVL (ALL CHAINS).
-    1a. Probe ACROSS chains: list every morpho_midnight_* schema decoded on Dune
-        (base, ethereum, arc?, ...); describe the collateral supply/withdraw CALL
-        tables + market->collateral mapping (MarketCreated/createmarket) per chain.
-        Confirm columns before building. A chain Midnight is on but Dune hasn't
-        decoded = a gap to note (wait vs raw), same as the Arc gate.
+  STEP 1 — Schema probe + Midnight-wide daily collateral TVL (Base + Ethereum).
+    1a. Probe BOTH schemas: morpho_midnight_base + morpho_midnight_ethereum — list
+        tables; describe collateral supply/withdraw CALL tables + market->collateral
+        mapping (createmarket) + the ETH collateral tokens (WBTC/cbBTC) price source.
+        Confirm columns before building.
     1b. Query MIDNIGHT_TVL_DAILY: per chain, per market, net collateral =
         supplycollateral(+) - withdrawcollateral(-); map market->collateral token +
-        decimals (dynamic from createmarket); price per chain (query_8595990 for
-        Base + the eth price source + USDC=$1); aggregate per (chain,day) BEFORE
-        unioning; cumulative on a daily spine -> daily net collateral present, USD,
-        TOTAL + per-chain. NO tenor filter.
-    Validate: latest day vs DefiLlama (all-chain) / app.morpho.org Midnight TVL.
-  STEP 2 — Tenor-routed daily collateral TVL (wherever Tenor routes).
-    First CONFIRM Tenor's live chains (Base yes; is ETH real now, not the early-Sept
-    dust? check app.tenor/midnightscan + TenorAdapter on ethereum.transactions).
-    Then same query + the Tenor key (offer.group ASCII "tenor" / TenorAdapter route),
-    unioned over Tenor's chains, on the SAME date spine. Validate: Tenor_TVL[d] <=
-    Midnight_TVL[d] EVERY day (and <= that chain's Midnight per chain).
-  STEP 3 — Share + movements (two denominators).
-    Join on day -> tenor_share_of_total = tenor_tvl / midnight_tvl_ALLCHAIN, and
-    tenor_share_of_base = tenor_base_tvl / midnight_base_tvl. Plus midnight_dod_pct,
-    tenor_dod_pct (day-over-day %), share_dod (pp). Weigh: is Tenor's share rising/
-    falling, and does Tenor move faster/slower than Midnight overall. Label which
-    share is which — they diverge because Tenor is Base-heavy, Midnight is multi-chain.
+        decimals (dynamic from createmarket); price per chain (Base query_8595990;
+        ETH WBTC/cbBTC source; USDC=$1); aggregate per (chain,day) BEFORE union;
+        cumulative on a daily spine. OUTPUT = SEPARATE COLUMNS: midnight_base_usd,
+        midnight_eth_usd, midnight_total_usd. NO tenor filter.
+    Validate: latest day PER CHAIN vs DefiLlama / app.morpho.org Midnight TVL.
+  STEP 2 — Tenor-routed daily collateral TVL (Base + Ethereum — fully live on both).
+    Same query + the Tenor key (offer.group ASCII "tenor" — ports across chains; plus
+    the TenorAdapter route per chain; grab the ETH TenorAdapter addr), SAME date spine.
+    OUTPUT columns: tenor_base_usd, tenor_eth_usd, tenor_total_usd.
+    Validate per chain: tenor_<chain>[d] <= midnight_<chain>[d] EVERY day.
+  STEP 3 — Share + movements (per chain + total).
+    Per day: tenor_share_total = tenor_total/midnight_total; tenor_share_base;
+    tenor_share_eth. Plus day-over-day % on each series + share deltas (pp). Weigh:
+    is Tenor gaining/losing share, ON WHICH CHAIN, and does Tenor move faster/slower
+    than Midnight. Separate per-chain columns = growth on each chain read directly.
   STEP 4 — Tiles.
     Dual-line Midnight vs Tenor TVL; Tenor-share % area; day-over-day % movement
     bars (Midnight vs Tenor); KPIs: current share, 7d share change, current TVL each.

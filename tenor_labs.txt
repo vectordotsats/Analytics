@@ -137,8 +137,10 @@ WORK LOG
             Events there: Take(=borrow), Repay, Supply/Withdraw collat.
 
             ETHEREUM: Tenor Ethereum deployment was dust/testing (one wallet
-            0x1efc..97e5) as of early Sept; founder said ETH launches Tue. Build
-            Base-only for now; union ETH when real volume lands.
+            0x1efc..97e5) as of early Sept. UPDATE 2026-11-09: Tenor now FULLY LIVE
+            on Ethereum (Vector confirmed). Build Base + ETH and union both; grab the
+            ETH TenorAdapter address + confirm the morpho_midnight_ethereum decode.
+            Midnight itself is on exactly 2 chains: Base + Ethereum (no Arc).
 
             NEXT: rate tracking (avg fixed APR over time, from take tick/units) +
             maturity ladder (outstanding by expiry) - both off midnight_call_take.
