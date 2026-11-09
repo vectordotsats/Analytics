@@ -1,0 +1,150 @@
+================================================================================
+MORPHO MIDNIGHT — OPPORTUNITY + BUILD PLAN
+================================================================================
+For: Vector. Purpose: own the Morpho Midnight data category while it's inflecting,
+and turn it into paid work (Tenor re-pitch + other Midnight builders) and content.
+Created: 2026-11-09. Sibling files: tenor_labs.txt (our Midnight decoding lives
+there), morpho_stocks.txt (the "95 markets, 0 outstanding" ghost-town note).
+Status: SCOPING -> Phase 1 build next.
+
+--------------------------------------------------------------------------------
+0. THE ONE IDEA
+--------------------------------------------------------------------------------
+Midnight was a ghost town in Oct (morpho_stocks.txt). It isn't anymore. It's
+growing fast and is barely dashboarded in public. We already built the hard part
+(Midnight decode + Tenor isolation, tenor_labs.txt). So: get metrics out EARLY,
+lead with "is this growth real + who's driving it", pitch Tenor + the other
+builders, post the turn. Same lane as Arc/Meteora, but we have a head start.
+
+--------------------------------------------------------------------------------
+1. WHAT CHANGED (state now, Nov 2026)
+--------------------------------------------------------------------------------
+- Midnight = Morpho's fixed-rate, fixed-term credit protocol. Offer-based model:
+  a lender keeps funds earning variable on Morpho Blue until their fixed-rate
+  OFFER is TAKEN (the "Take" = borrow). This "offered capital" design is the fix
+  for the thin-liquidity problem that killed earlier fixed-rate attempts.
+- Live on BASE 2026-07-21; expanded to ETHEREUM 2026-09-08 (USDC backed by WBTC /
+  cbBTC). Still a gradual, security-paced rollout (new features weekly).
+- Adoption inflected HARD. Early weeks were ~$908k TVL / ~$152k active loans. The
+  trackers now show a steep climb (a recent DefiLlama-sourced read ~$56M TVL,
+  +~557% in a week; an older cached DefiLlama page still read ~$4.3M / +372% 30d).
+  *** The exact live number is UNCONFIRMED — pinning it on-chain is our Step 1. ***
+- ~$5B sitting in Morpho Vaults still CAN'T enter Midnight pending a DAO action ->
+  when that unlocks, big inflow potential. Watch governance.
+- "Several unidentified enterprises/institutions building on Midnight in beta,
+  announcements expected" -> those are future Tenor-shaped clients.
+- Governance active: MIP to add new LLTVs on Midnight (forum, 2026-11-04).
+- Fees small but real (~$29k/30d per DefiLlama). Next MORPHO unlock 2026-11-20.
+
+--------------------------------------------------------------------------------
+2. WHY WE'RE POSITIONED (already built — tenor_labs.txt)
+--------------------------------------------------------------------------------
+- Midnight decoded on Dune: morpho_midnight_base.midnight_* (by wintermute). USE
+  CALL TABLES: midnight_evt_take is BROKEN (args_17 bug); midnight_call_take works
+  and is richer. Borrow = the "Take" action.
+  take fields: output_0 = loan PRINCIPAL; units = debt FACE (principal+interest to
+  maturity); offer.market.maturity = term; offer.tick = encoded fixed RATE;
+  offer.buy = side; offer.reduceOnly (true = position reduction, exclude for opens).
+- TENOR ISOLATION KEY (clean): offer.group is prefixed 0x74656e6f72 = ASCII
+  "tenor". Filter: substr(json_extract_scalar(offer,'$.group'),1,12)='0x74656e6f72'.
+  ~1259 Tenor takes of 3121 total (~40% of Midnight take-flow at the time).
+- Tenor collateral route: tenoradapter_call_midnightsupplycollateral (schema
+  tenor_base). Routing contracts: TenorAdapter 0x5675892d48828872fbFD2720489f98b42f48138F,
+  Bundler3 0x6BFd8137e702540E7A42B74178A4a49Ba43920C4.
+- Prices: reusable Base daily USD query_8595990 (WETH/cbBTC/cbETH, fwd-filled).
+  USDC=$1. Decimals: USDC 6, WETH/cbETH 18, cbBTC 8.
+- Already BUILT + VALIDATED for Tenor: collateral supplied (daily+cum), collateral
+  PRESENT (net supplied-withdrawn, USD, <= Midnight ceiling), borrow volume (opens).
+- DEFERRED (v2): net outstanding debt needs POSITION STATE (per-position ledger),
+  not flow reconstruction (opens-repays overshot whole-Midnight = impossible).
+
+--------------------------------------------------------------------------------
+3. BUILD PLAN (phased — we go step by step)
+--------------------------------------------------------------------------------
+Principles: dynamic/no-hardcoding (enumerate markets from MarketCreated, never a
+curated list); net & current, never gross-cumulative; market/contract layer only;
+materialize small daily tables; label precisely (TVL vs active loans vs util);
+validate every number vs app.morpho.org / MidnightScan / DefiLlama before shipping.
+
+TVL DEFINITION (matches DefiLlama): Midnight TVL = net COLLATERAL present in the
+Midnight contract, enumerated from MarketCreated. That's our "deposit/TVL" series.
+(If we later want lender offered-capital or taken-principal as separate series, add
+them explicitly — don't conflate.)
+
+=== PHASE 1 — TENOR'S SHARE OF MIDNIGHT, DAILY (Vector's priority) ===
+Goal: two daily TVL series (Midnight-wide vs Tenor-routed) on one date spine, then
+Tenor share % and day-over-day % movements. "How much of Midnight is Tenor, and is
+Tenor gaining or losing ground as Midnight grows."
+
+  STEP 1 — Schema probe + Midnight-wide daily collateral TVL (Base).
+    1a. Probe: list morpho_midnight_base.* tables; describe the collateral
+        supply/withdraw CALL tables + market->collateral-token mapping source
+        (MarketCreated / createmarket). Confirm column names before building.
+    1b. Query MIDNIGHT_TVL_DAILY: per market, net collateral = supplycollateral(+)
+        - withdrawcollateral(-); map market->collateral token + decimals (dynamic
+        from createmarket); price (query_8595990 + USDC=$1); daily date spine;
+        cumulative running sum -> daily net collateral present, USD. NO tenor filter.
+    Validate: compare the latest day vs DefiLlama / app.morpho.org Midnight TVL.
+  STEP 2 — Tenor-routed daily collateral TVL (Base).
+    Same query, ADD the Tenor key (offer.group ASCII "tenor" and/or TenorAdapter
+    route). This is our existing "collateral present" build re-shaped onto the SAME
+    date spine as Step 1. Validate: Tenor_TVL[d] <= Midnight_TVL[d] EVERY day.
+  STEP 3 — Share + movements.
+    Join Step1 & Step2 on day -> tenor_share_pct = tenor_tvl/midnight_tvl;
+    midnight_dod_pct, tenor_dod_pct (day-over-day % change); share_dod (share delta,
+    pp). Weigh: is Tenor's share rising/falling, and does Tenor move faster/slower
+    than Midnight overall.
+  STEP 4 — Tiles.
+    Dual-line Midnight vs Tenor TVL; Tenor-share % area; day-over-day % movement
+    bars (Midnight vs Tenor); KPIs: current share, 7d share change, current TVL each.
+
+=== PHASE 2 — PROTOCOL-WIDE MIDNIGHT ADOPTION (the public dashboard) ===
+  - Adoption curve from launch: TVL, borrow (Take) volume, active loans. The "is
+    fixed-rate finally catching on" chart nobody has.
+  - Router/builder breakdown via offer.group: Tenor vs direct vs OTHER groups ->
+    surfaces the "unidentified enterprises building on Midnight" = PITCH TARGETS.
+  - Real vs rented: MORPHO-incentive farming vs organic borrow demand.
+  - Term structure: fixed rates quoted/achieved (offer.tick) + maturity ladder
+    (outstanding by expiry) — the thing variable-rate dashboards can't show.
+  - Base vs Ethereum split (union the eth Midnight schema once confirmed).
+
+=== PHASE 3 — DEPTH / v2 ===
+  - Net outstanding debt from POSITION STATE (midnight debt view / per-position
+    ledger), same source MidnightScan uses. Dedicated build, not a one-query patch.
+  - Fees (claimcontinuousfee / claimsettlementfee), rate-over-time, liquidations.
+
+--------------------------------------------------------------------------------
+4. MONETIZE (who might pay)
+--------------------------------------------------------------------------------
+- TENOR re-pitch (warmest): founder contact + partial build exist. Stronger now —
+  Tenor's slice of a GROWING pie. Phase 1 (share) + finished net-debt = the pitch.
+- OTHER MIDNIGHT BUILDERS: the Phase-2 router breakdown names them. Each = a
+  Tenor-shaped client (traction/monitoring dashboard).
+- CURATORS / Morpho ecosystem (Steakhouse, Gauntlet): vault-on-Midnight analytics.
+- CONTENT (@vectorsats): "Midnight adoption teardown — is fixed-rate finally
+  catching, or is it rented?" Reputation + lead-gen.
+Pitch rules (standard): verify contact; never run their code / connect wallet /
+sign; USDC only; propose a small paid pilot. Pitch in Vector's own casual lowercase
+voice (lead with Coinbase stocks + Aave-vs-Morpho teardown as proof).
+
+--------------------------------------------------------------------------------
+5. POST-WORTHY (flagged)
+--------------------------------------------------------------------------------
+- The reversal: Vector's own Oct "95 markets, 0 outstanding" ghost-town note vs
+  Midnight now inflecting = a clean before/after thread. You called it empty, now
+  you call the turn. Strong even before the dashboard ships.
+
+--------------------------------------------------------------------------------
+NEXT STEP
+--------------------------------------------------------------------------------
+Phase 1, Step 1: run the morpho_midnight_base schema probe (collateral call tables
++ market->collateral mapping), then build MIDNIGHT_TVL_DAILY and validate the
+latest day vs DefiLlama/app.morpho.org. Then Step 2 (Tenor subset) and Step 3 (share
++ movements).
+
+Sources: morpho.org (Midnight live / Midnight Effect newsletters), theblock.co
+(Base launch 2026-07-21; offered-capital), thedefiant.io (Ethereum expansion
+2026-09-08; ~$5B vaults pending DAO), cointelegraph (unidentified enterprises in
+beta), DefiLlama + oakresearch.io (TVL/fees), forum.morpho.org (LLTV MIP 2026-11-04).
+All post-2026-01 -> web-sourced, verify on-chain before shipping any figure.
+================================================================================
