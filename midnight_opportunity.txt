@@ -183,3 +183,37 @@ Sources: morpho.org (Midnight live / Midnight Effect newsletters), theblock.co
 beta), DefiLlama + oakresearch.io (TVL/fees), forum.morpho.org (LLTV MIP 2026-11-04).
 All post-2026-01 -> web-sourced, verify on-chain before shipping any figure.
 ================================================================================
+
+--------------------------------------------------------------------------------
+BUILD LOG — SUPPLY/LOAN LEG + DEPOSITS RECONCILIATION (2026-11-10)
+--------------------------------------------------------------------------------
+- Dune's decoded midnight_evt_take is BROKEN (view references decoded.args_17 -> the
+  whole view fails to compile). Do NOT use evt_take. RAW-DECODE from logs instead.
+- RAW Take decode (base.logs / ethereum.logs), topic0
+  0xbd88656d0ee14d32d4f74f814f6ccb5c750a4c542d6fdf83ee00ddca4edebff0:
+    topic1 = market id; data word3 = group (Tenor isolation key);
+    word6 = units (FACE); word12 = totalUnitsDelta (int256, signed).
+  ratifierData is the ONLY dynamic field (appended at tail), so head word offsets are
+  fixed/safe. Decode: bytearray_to_int256(bytearray_substring(data, 12*32+1, 32)).
+- Contracts: Base Midnight 0xadedd8ab6de832766fedf0fac4992e5c4d3ea18a ;
+  ETH Midnight 0x471686c42792F93528B000beF54bC10E3aa2045f.
+- Loan token from market JSON: json_extract_scalar(market,'$.loanToken') = USDC (6dp)
+  on both chains. Collateral token comes off the collateral events (prior log).
+- marketstate VIEW (midnight_call_marketstate) is USELESS for aggregates: coverage
+  2/1302 markets (Base), 0/1610 (ETH). Lesson: Dune call_* view tables are sparse;
+  reconstruct from logs, never rely on view-call coverage.
+- units = FACE (principal + full-term interest). Sum(totalUnitsDelta) per market =
+  net outstanding in FACE units.
+- RESULT (2026-11-10): Base $12.55M + ETH $86.42M = $98.97M net outstanding (face).
+  Brackets the Morpho app correctly: Outstanding loans $92.07M (present value < face)
+  and Loans originated $102.79M (cumulative > net). Internally consistent -> the
+  reconstruction is validated as the LOAN book.
+- RECONCILIATION CORRECTION: Morpho "Total deposits" (~$285M) is NOT collateral+supply.
+  It = supply-side liquidity = available Borrow liquidity + Outstanding loans. The
+  available-liquidity part is lenders' OFFERED capital = largely OFF-CHAIN signed limit
+  orders on Morpho Blue -> NOT in on-chain events. So the full $285M is NOT
+  reconstructable on-chain alone (needs Morpho API/orderbook). Collateral is likely NOT
+  part of "Total deposits".
+- CLEAN ON-CHAIN METRICS to build on instead: (1) Collateral present (done), (2)
+  Outstanding loans (this reconstruction; refine face->present-value to match $92.07M).
+  Tenor-share story = Tenor's share of Outstanding loans + share of Collateral.
