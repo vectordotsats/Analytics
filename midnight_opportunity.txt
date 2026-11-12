@@ -217,3 +217,26 @@ BUILD LOG — SUPPLY/LOAN LEG + DEPOSITS RECONCILIATION (2026-11-10)
 - CLEAN ON-CHAIN METRICS to build on instead: (1) Collateral present (done), (2)
   Outstanding loans (this reconstruction; refine face->present-value to match $92.07M).
   Tenor-share story = Tenor's share of Outstanding loans + share of Collateral.
+
+
+=== BUILD LOG: WHO DROVE THE LOANS-ORIGINATED SPIKE (verified Nov 12 2026) ===
+RULE (checked on ~315 raw ETH Take logs, cross-checked vs known collateral posters + Ethena wallet)
+- lender = buyer of units = maker if offerIsBuy else taker. borrower = other side.
+- count only totalUnitsDelta > 0 (new loan). 0 = position transfer, <0 = unwind.
+- amount = buyerAssets (cash), not units (face).
+- old queries had roles inverted + no delta filter -> dead end.
+WHERE THE SPIKE IS (ETH, cumulative originated)
+- Oct 19: $1.6M -> Oct 23: $56.7M -> Nov 5: $84.6M -> Nov 10: $89.6M (Morpho app said $102.8M; gap ~= Base, not yet tallied)
+- Biggest days: Oct 22 $17.0M, Oct 23 $30.6M, Nov 5 $13.0M
+LENDERS Oct 20 - Nov 5 (ETH, $82.9M total)
+- 0x2bf5d9a2326ad3c5ef8208f91af79c3ca1f0f67c  Ethena            $52.96M (64%)
+- 0xbe8f87f2b59e59d13588bba448036e2688c57c27  EOA, holds $46M syrupUSDC  $20.0M (24%) all on Oct 23
+- 0x2ab00b33cbc351b5ce474a80dc4e069e02e68d8e  EOA               $7.95M (10%)
+- rest: 17 wallets, $2.1M
+TOP BORROWERS (same window)
+- 0x28355886...762b1 $23.5M (whale: 13.3k wstETH + 340 cbBTC on Spark)
+- 0xa56da9bb...5846f $13.4M | 0x36cde31b...f90b7 $10.0M | 0xb561b1e7...05f60 $9.65M
+- 0xa1226872...2e7c6 $5.75M | 0x7ee29373...f5178 $5.0M | 0x95e153c9...39568 $3.87M
+AFTER: Nov 12 Ethena lent another $20.1M to 0x4382e9fe...4cbc
+QUERY: midnight_originations_by_address.sql (both chains, params start/end)
+TODO: run on Dune to add Base + reconcile to app total.
