@@ -71,3 +71,11 @@ Limit: assumes moves go through Ethereum. Direct chain-to-chain moves would shif
 === BY-CHAIN RESULT (corrected query, Nov 13 2026) - PASS, total $94.73M ===
 Monad $62.33M (65.8%) | Pharos $23.50M (24.8%) | Ethereum $8.71M (9.2%) | Berachain $0.16M | XDC $0.03M | rest ~0
 NEXT: step 2a holders on Monad (reservoir_04_monad_holders.sql), then Pharos, then buckets + daily flows.
+
+=== STEP 2a RESULT: wsrUSD holders on Monad (Nov 13 2026) - PASS ===
+Sum 56.237M = net bridged to Monad -> money moves only via Ethereum (hub view confirmed for Monad).
+- 0x78b4ddab63826c9021e7f75b1a8ee18bec8012e6  37.43M (66.6%, $41.5M)  unlabeled contract, holds only wsrUSD,
+  135 txs, first tx ~Aug 2026. NOT identified (could be a Curvance collateral market not decoded on Dune).
+- 0x251b67ae7e90fdc6a7b080ee601913a8b2746a28  18.80M (33.4%, $20.8M)  Curvance BorrowableCToken
+- everything else < $1.5k
+NEXT: identify 0x78b4, Pharos holders, then daily flows per bucket.
