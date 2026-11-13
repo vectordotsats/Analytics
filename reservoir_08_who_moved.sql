@@ -120,11 +120,14 @@ moves as (
 )
 select date_format(day, '%Y-%m-%d') as day,
        case when from_venue = 'OUTSIDE' then 'New mint' else from_venue end as money_left,
-       from_who as from_address,
+       '<a href="https://etherscan.io/address/' || cast(from_who as varchar) || '" target="_blank">'
+         || substr(cast(from_who as varchar), 1, 6) || '...' || substr(cast(from_who as varchar), -4) || '</a>' as from_address,
        case when to_venue   = 'OUTSIDE' then 'Redeemed (left Reservoir)' else to_venue end as money_arrived,
-       to_who as to_address,
+       '<a href="https://etherscan.io/address/' || cast(to_who as varchar) || '" target="_blank">'
+         || substr(cast(to_who as varchar), 1, 6) || '...' || substr(cast(to_who as varchar), -4) || '</a>' as to_address,
        round(usd, 0) as usd,
-       evt_tx_hash as tx
+       '<a href="https://etherscan.io/tx/' || cast(evt_tx_hash as varchar) || '" target="_blank">'
+         || substr(cast(evt_tx_hash as varchar), 1, 6) || '...' || substr(cast(evt_tx_hash as varchar), -4) || '</a>' as tx
 from moves
 where usd >= {{min_usd}}
 order by day desc, usd desc
