@@ -82,3 +82,5 @@ NEXT: identify 0x78b4, Pharos holders, then daily flows per bucket.
 CONFIRMED (user, Monad explorer): 0x78b4ddab...8012e6 = "Curvance Wrapped ... (cwsrUSD)". Monad = 100% Curvance ($62.3M):
 collateral side cwsrUSD $41.5M + BorrowableCToken $20.8M.
 NEXT: Pharos holders (reservoir_05_pharos_holders.sql).
+PHAROS: not indexed on Dune (schema missing). Explorer pharosscan.xyz, wsrUSD 0x4809010926aec940b550D34a46A52739f996D75D.
+Holders = explorer page (manual). Flows = Ethereum bridge side only (reservoir_05_pharos_holders.sql, param chain_eid).
