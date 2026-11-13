@@ -57,3 +57,13 @@ Rotation: Katana(30375?) 29.5M, Plume(30370?) 21.7M, Sei(30280?) 20.9M, World(30
 Bera(30362?) 15.2M, Linea(30183?) 13.8M, Arbitrum(30110?) 10.2M all went out and came fully back.
 Chain id -> name mapping NOT verified. 30390 believed Monad; 30407 unknown.
 Total TVL query corrected: reservoir_tvl_total.sql
+
+=== CHAIN IDS (verified: LayerZero docs OFT quickstart table, Nov 13 2026) ===
+30390 Monad | 30407 Pharos | 30365 XDC | 30370 Plume | 30319 Worldchain | 30375 Katana | 30280 Sei
+30110 Arbitrum | 30184 Base | 30183 Linea | 30106 Avalanche | 30102 BNB | 30320 Unichain
+30362 Berachain | 30410 Tempo | 30383 Plasma | 30332 Sonic | 30367 HyperEVM | 30398 MegaETH
+30168 Solana (not in the EVM table; from memory)
+wsrUSD today: Monad 56.24M (~$62M), Pharos 21.20M (~$23.5M), Ethereum ~7.26M (~$8M).
+Old by-chain query had no Pharos table -> ~$23.5M uncounted.
+By-chain query corrected: reservoir_tvl_by_chain.sql (hub view from 3 Ethereum adapters).
+Limit: assumes moves go through Ethereum. Direct chain-to-chain moves would shift per-chain numbers.
