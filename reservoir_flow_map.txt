@@ -110,3 +110,6 @@ Reading Nov 10-13: supply $95.14M -> $94.74M (about -$0.4M); steady redemptions 
 ($7.39M -> $7.24M); Nov 10 $2.45M rotated Monad -> Pharos; Nov 10-11 $0.31M Sei -> wallet -> Pharos.
 Outside gross is ~2x net: a wsrUSD redeem burns wsrUSD, mints rUSD, then burns rUSD. Read net, not gross.
 v2 of 3a: daily prices (forward filled), dense grid so balance exists every day.
+3a v3 (user feedback: dense table unreadable): split in two.
+- reservoir_06_daily_flows_from_to.sql = table "money_left -> money_arrived -> usd" (netted per tx, min_usd filter)
+- reservoir_07_venue_balances_daily.sql = dense daily balance per venue, for a chart only

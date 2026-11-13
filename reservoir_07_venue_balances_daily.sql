@@ -1,4 +1,4 @@
--- RESERVOIR STEP 3a: daily money in / out per venue (all three tokens, each day valued at that day's price)
+-- RESERVOIR 07: daily BALANCE per venue (for the balance-over-time chart, not for reading as a table)
 -- Venue = Ethereum protocol (from Dune labels), "Ethereum: wallets", a destination chain, or "Outside" (mint / redeem).
 -- Checks: each day sum(net_usd) over all venues ~ 0 ; latest balance Monad ~$62.3M, Pharos ~$23.5M,
 --         Ethereum: morpho_blue ~$7.2M, Ethereum: dolomite ~$1.2M, Outside ~ -$94.7M.
