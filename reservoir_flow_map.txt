@@ -1,0 +1,36 @@
+RESERVOIR — "WHERE IS THE MONEY" BUILD NOTES (research Nov 13 2026)
+
+GOAL
+Daily map of where rUSD / srUSD / wsrUSD sit (which protocol / contract / chain),
+so a TVL rise or fall can be traced to who moved and where it went.
+
+VERIFIED
+- wsrUSD (0xd3fd...3094) is an ERC-4626 "Savingcoin". Its contract holds 0 rUSD and has
+  never received an rUSD transfer -> rUSD is burned on deposit. So rUSD + srUSD + wsrUSD
+  supply is not double counted at the token level.
+- Morpho Blue singleton (0xBBBB...FFCb) holds ~6.58M wsrUSD right now.
+- IPOR Fusion looping vault 0xe9385eff...fb5f moves wsrUSD in/out of Morpho.
+- DefiLlama: TVL $98.06M, Ethereum $89.06M, Monad $9.01M, rest ~0.
+- Ethereum has OFT *adapters* (lock model): rUSD 0xf0e9f6d9...b4da, srUSD 0x316cd396...4514,
+  wsrUSD 0xbb431abd...258a. Tokens bridged out sit in these -> adapter balance = "on other chains".
+- Docs address page: docs.reservoir.xyz/security-and-compliance/smart-contract-addresses
+
+NOT VERIFIED
+- Full holder list (Bitquery plan expired) -> first Dune query tomorrow.
+- "rUSD Mint Bridge" 0x6360f438...54b3: may mint rUSD natively on other chains (then ETH supply
+  misses it, e.g. Monad $9M).
+- srUSD -> wsrUSD migration path (is srUSD burned or locked?).
+
+BUG IN CURRENT TVL QUERY
+- Price comes from call traces (currentprice / converttoassets). Days with no call fall back
+  to COALESCE(price, 1) -> TVL dips ~15% on those days. Fix: forward-fill last known price,
+  or compute from Deposit/Withdraw events (assets/shares).
+
+BUILD PLAN
+1. Balances: daily balance per holder per token from Transfer events (3 tokens).
+2. Buckets: classify each holder dynamically (contract vs EOA; contract name/project from
+   Dune contracts + labels tables; Morpho markets where collateral or loan token = our tokens).
+   Buckets: Morpho, Pendle, Euler, Dolomite, IPOR, Curve/DEX, bridges (OFT adapters), wallets.
+3. Split Morpho singleton by market via Morpho events.
+4. Daily net change per bucket = the "what left and where" view. Mint/burn = entered/exited protocol.
+5. Reconcile: sum of buckets = total supply = existing TVL query = app number.
