@@ -79,3 +79,6 @@ Sum 56.237M = net bridged to Monad -> money moves only via Ethereum (hub view co
 - 0x251b67ae7e90fdc6a7b080ee601913a8b2746a28  18.80M (33.4%, $20.8M)  Curvance BorrowableCToken
 - everything else < $1.5k
 NEXT: identify 0x78b4, Pharos holders, then daily flows per bucket.
+CONFIRMED (user, Monad explorer): 0x78b4ddab...8012e6 = "Curvance Wrapped ... (cwsrUSD)". Monad = 100% Curvance ($62.3M):
+collateral side cwsrUSD $41.5M + BorrowableCToken $20.8M.
+NEXT: Pharos holders (reservoir_05_pharos_holders.sql).
