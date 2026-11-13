@@ -113,3 +113,7 @@ v2 of 3a: daily prices (forward filled), dense grid so balance exists every day.
 3a v3 (user feedback: dense table unreadable): split in two.
 - reservoir_06_daily_flows_from_to.sql = table "money_left -> money_arrived -> usd" (netted per tx, min_usd filter)
 - reservoir_07_venue_balances_daily.sql = dense daily balance per venue, for a chart only
+3a v3 RESULT: PASS (Nov 13 Morpho->Redeemed $114,555; Nov 10 Monad->wallets->Pharos $2,450,463; no unmatched bridge rows).
+Known artifact: Nov 12 one ~$38.7k conversion shows as 4 rows (wallets->uniswap_v3, uniswap_v3->Redeemed,
+wallets->Redeemed, New mint->wallets). Net is right ($76.6k redeemed). TODO: net mint+redeem across tokens per tx.
+3b = reservoir_08_who_moved.sql (params day, min_usd).
