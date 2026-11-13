@@ -1,6 +1,6 @@
--- RESERVOIR STEP 3b: who moved the money on one day (drill-down for the from->to table)
+-- RESERVOIR STEP 3b: who moved the money over the last N days (drill-down for the from->to table)
 -- One row = one move inside one transaction: venue + address it left, venue + address it reached, usd, tx.
--- Params: day (text, e.g. 2026-11-10), min_usd (number, e.g. 1000).
+-- Params: days_back (number, e.g. 3), min_usd (number, e.g. 1000).
 -- Check: totals per (money_left, money_arrived) equal that day's rows in reservoir_06.
 with eid_names (eid, chain) as (
   values (30101,'Ethereum'), (30102,'BNB'), (30106,'Avalanche'), (30110,'Arbitrum'), (30168,'Solana'),
@@ -12,15 +12,15 @@ with eid_names (eid, chain) as (
 transfers as (
   select contract_address, "from", "to", cast(value as double) as raw, evt_block_time, evt_tx_hash
   from reservoir_protocol_ethereum.stablecoin_evt_transfer
-  where evt_block_time >= date '{{day}}' and evt_block_time < date '{{day}}' + interval '1' day
+  where evt_block_time >= current_date - interval '{{days_back}}' day
   union all
   select contract_address, "from", "to", cast(value as double), evt_block_time, evt_tx_hash
   from reservoir_protocol_ethereum.savingcoin_evt_transfer
-  where evt_block_time >= date '{{day}}' and evt_block_time < date '{{day}}' + interval '1' day
+  where evt_block_time >= current_date - interval '{{days_back}}' day
   union all
   select contract_address, "from", "to", cast(value as double), evt_block_time, evt_tx_hash
   from reservoir_protocol_ethereum.savingcoinv2_evt_transfer
-  where evt_block_time >= date '{{day}}' and evt_block_time < date '{{day}}' + interval '1' day
+  where evt_block_time >= current_date - interval '{{days_back}}' day
 ),
 tok as (
   select t.contract_address, tk.decimals
@@ -111,14 +111,15 @@ px as (  -- that day's price, carried forward over quiet days
   left join price_raw r on r.contract_address = k.contract_address and r.day = d.day
 ),
 moves as (
-  select p.evt_tx_hash, p.from_venue, p.from_who, p.to_venue, p.to_who,
+  select p.day, p.evt_tx_hash, p.from_venue, p.from_who, p.to_venue, p.to_who,
          sum(p.raw / power(10, k.decimals) * coalesce(x.price, 1)) as usd
   from pairs p
   join tok k     on k.contract_address = p.token_address
   left join px x on x.contract_address = p.token_address and x.day = p.day
-  group by 1, 2, 3, 4, 5
+  group by 1, 2, 3, 4, 5, 6
 )
-select case when from_venue = 'OUTSIDE' then 'New mint' else from_venue end as money_left,
+select date_format(day, '%Y-%m-%d') as day,
+       case when from_venue = 'OUTSIDE' then 'New mint' else from_venue end as money_left,
        from_who as from_address,
        case when to_venue   = 'OUTSIDE' then 'Redeemed (left Reservoir)' else to_venue end as money_arrived,
        to_who as to_address,
@@ -126,4 +127,4 @@ select case when from_venue = 'OUTSIDE' then 'New mint' else from_venue end as m
        evt_tx_hash as tx
 from moves
 where usd >= {{min_usd}}
-order by usd desc
+order by day desc, usd desc
