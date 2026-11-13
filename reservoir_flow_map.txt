@@ -34,3 +34,16 @@ BUILD PLAN
 3. Split Morpho singleton by market via Morpho events.
 4. Daily net change per bucket = the "what left and where" view. Mint/burn = entered/exited protocol.
 5. Reconcile: sum of buckets = total supply = existing TVL query = app number.
+
+=== STEP 1a RESULT (Nov 13 2026, Ethereum snapshot, 386 holders, no negatives) ===
+Supply: wsrUSD 84.73M ($93.9M @1.108) | srUSD 0.51M ($0.60M @1.171) | rUSD 0.23M  -> total $94.7M
+WHERE IT SITS
+- Bridged out (OFT adapters) $86.0M  90.8%   <- wsrUSD adapter alone holds 77.47M wsrUSD
+- Morpho Blue                $7.24M   7.6%
+- Dolomite                   $1.20M   1.3%
+- everything else            $0.27M   0.3%
+MEANING: Ethereum buckets explain only ~9% of the money. The real map is per destination chain.
+PLAN CHANGE: step 1c = net bridged per chain (reservoir_03_bridge_by_chain.sql), then holder
+snapshot on the biggest destination chains, then buckets.
+CORRECTION: wsrUSD price is ~1.108 (not ~1.16), so the COALESCE(price,1) bug is a ~10% dip, not 15%.
+Confirmed from user: srUSD and wsrUSD both mint by burning rUSD; no direct srUSD->wsrUSD; Monad TVL is Curvance.
