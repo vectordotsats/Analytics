@@ -1,4 +1,4 @@
--- RESERVOIR STEP 3a: daily money in / out per venue (all three tokens, in USD at last known price)
+-- RESERVOIR STEP 3a: daily money in / out per venue (all three tokens, each day valued at that day's price)
 -- Venue = Ethereum protocol (from Dune labels), "Ethereum: wallets", a destination chain, or "Outside" (mint / redeem).
 -- Checks: each day sum(net_usd) over all venues ~ 0 ; latest balance Monad ~$62.3M, Pharos ~$23.5M,
 --         Ethereum: morpho_blue ~$7.2M, Ethereum: dolomite ~$1.2M, Outside ~ -$94.7M.
@@ -70,35 +70,68 @@ bridge_flows as (
   join tok k            on k.token = b.token
   left join eid_names n on n.eid = b.eid
 ),
-px as (
-  select contract_address, max_by(cast(output_0 as double) / cast(shares as double), call_block_time) as price
+flows as (  -- token units per day / venue / token
+  select f.day, f.venue, f.token_address,
+         sum(case when f.raw > 0 then  f.raw else 0 end) / power(10, k.decimals) as inflow,
+         sum(case when f.raw < 0 then -f.raw else 0 end) / power(10, k.decimals) as outflow
+  from (select * from eth_flows union all select * from bridge_flows) f
+  join tok k on k.contract_address = f.token_address
+  group by f.day, f.venue, f.token_address, k.decimals
+),
+days as (
+  select t.day
+  from (select min(day) as d0 from flows) x
+  cross join unnest(sequence(x.d0, current_date, interval '1' day)) as t(day)
+),
+price_raw as (  -- last price seen each day, in rUSD
+  select contract_address, call_block_date as day,
+         max_by(cast(output_0 as double) / cast(shares as double), call_block_time) as price
   from reservoir_protocol_ethereum.savingcoinv2_call_converttoassets
   where call_success and shares > uint256 '0'
-  group by 1
-  union all
-  select s.contract_address, p.price
-  from (select distinct contract_address from reservoir_protocol_ethereum.savingcoin_evt_transfer) s
-  cross join (select max_by(output_0 / 1e8, call_block_time) as price
-              from reservoir_protocol_ethereum.savingmodule_call_currentprice where call_success) p
-),
-daily as (
-  select f.day, f.venue,
-         sum(case when f.raw > 0 then  f.raw else 0 end / power(10, k.decimals) * coalesce(p.price, 1)) as inflow_usd,
-         sum(case when f.raw < 0 then -f.raw else 0 end / power(10, k.decimals) * coalesce(p.price, 1)) as outflow_usd
-  from (select * from eth_flows union all select * from bridge_flows) f
-  join tok k     on k.contract_address = f.token_address
-  left join px p on p.contract_address = f.token_address
   group by 1, 2
+  union all
+  select s.contract_address, p.day, p.price
+  from (select distinct contract_address from reservoir_protocol_ethereum.savingcoin_evt_transfer) s
+  cross join (select call_block_date as day, max_by(output_0 / 1e8, call_block_time) as price
+              from reservoir_protocol_ethereum.savingmodule_call_currentprice
+              where call_success group by 1) p
+),
+px as (  -- every day has a price: carry the last known one forward
+  select d.day, k.contract_address,
+         coalesce(last_value(r.price) ignore nulls over (
+                    partition by k.contract_address order by d.day
+                    rows between unbounded preceding and current row), 1) as price
+  from days d
+  cross join tok k
+  left join price_raw r on r.contract_address = k.contract_address and r.day = d.day
+),
+grid as (  -- every day for every venue + token that ever had a flow
+  select d.day, v.venue, v.token_address
+  from days d
+  cross join (select distinct venue, token_address from flows) v
 ),
 running as (
-  select day, venue, inflow_usd, outflow_usd,
-         inflow_usd - outflow_usd as net_usd,
-         sum(inflow_usd - outflow_usd) over (partition by venue order by day) as balance_usd
-  from daily
+  select g.day, g.venue, g.token_address,
+         coalesce(f.inflow, 0)  as inflow,
+         coalesce(f.outflow, 0) as outflow,
+         sum(coalesce(f.inflow, 0) - coalesce(f.outflow, 0))
+           over (partition by g.venue, g.token_address order by g.day) as units
+  from grid g
+  left join flows f on f.day = g.day and f.venue = g.venue and f.token_address = g.token_address
+),
+valued as (
+  select r.day, r.venue,
+         sum(r.inflow  * p.price) as inflow_usd,
+         sum(r.outflow * p.price) as outflow_usd,
+         sum(r.units   * p.price) as balance_usd
+  from running r
+  join px p on p.day = r.day and p.contract_address = r.token_address
+  group by 1, 2
 )
 select day, venue,
        round(inflow_usd, 0) as inflow_usd, round(outflow_usd, 0) as outflow_usd,
-       round(net_usd, 0) as net_usd, round(balance_usd, 0) as balance_usd
-from running
+       round(inflow_usd - outflow_usd, 0) as net_usd, round(balance_usd, 0) as balance_usd
+from valued
 where day >= current_date - interval '{{days_back}}' day
-order by day desc, abs(net_usd) desc
+  and (inflow_usd > 0 or outflow_usd > 0 or abs(balance_usd) > 1)
+order by day desc, abs(inflow_usd - outflow_usd) desc

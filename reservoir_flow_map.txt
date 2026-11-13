@@ -103,3 +103,10 @@ NEXT: daily in/out per venue; trace where the 6 exit wallets sent wsrUSD after i
 3a daily flows per venue (reservoir_06_daily_flows_by_venue.sql, param days_back)  <- main chart + table
 3b who moved on a given day / venue (wallet level drill-down)
 3c inside Monad: Curvance collateral vs lending side, daily (Monad tables). Pharos stays bridge-level (not on Dune).
+
+=== STEP 3a RESULT (Nov 13 2026) - PASS ===
+All checks pass: daily net sums to 0; balances Monad $62.33M, Pharos $23.50M, ETH Morpho $7.24M, Outside -$94.74M.
+Reading Nov 10-13: supply $95.14M -> $94.74M (about -$0.4M); steady redemptions out of Ethereum Morpho
+($7.39M -> $7.24M); Nov 10 $2.45M rotated Monad -> Pharos; Nov 10-11 $0.31M Sei -> wallet -> Pharos.
+Outside gross is ~2x net: a wsrUSD redeem burns wsrUSD, mints rUSD, then burns rUSD. Read net, not gross.
+v2 of 3a: daily prices (forward filled), dense grid so balance exists every day.
