@@ -67,3 +67,7 @@ wsrUSD today: Monad 56.24M (~$62M), Pharos 21.20M (~$23.5M), Ethereum ~7.26M (~$
 Old by-chain query had no Pharos table -> ~$23.5M uncounted.
 By-chain query corrected: reservoir_tvl_by_chain.sql (hub view from 3 Ethereum adapters).
 Limit: assumes moves go through Ethereum. Direct chain-to-chain moves would shift per-chain numbers.
+
+=== BY-CHAIN RESULT (corrected query, Nov 13 2026) - PASS, total $94.73M ===
+Monad $62.33M (65.8%) | Pharos $23.50M (24.8%) | Ethereum $8.71M (9.2%) | Berachain $0.16M | XDC $0.03M | rest ~0
+NEXT: step 2a holders on Monad (reservoir_04_monad_holders.sql), then Pharos, then buckets + daily flows.
