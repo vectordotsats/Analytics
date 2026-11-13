@@ -98,3 +98,8 @@ ever sending there: exits by a different wallet than the one that went in. Keep 
 Monad / Curvance $62.3M (65.8%) | Pharos / Morpho $23.5M (24.8%) | Ethereum / Morpho $7.2M | Ethereum / Dolomite $1.2M | other $0.5M
 => ~99% of Reservoir supply sits in 3 lending protocols.
 NEXT: daily in/out per venue; trace where the 6 exit wallets sent wsrUSD after it landed on Ethereum.
+
+=== STEP 3 PLAN: daily in/out dashboard = 3 queries ===
+3a daily flows per venue (reservoir_06_daily_flows_by_venue.sql, param days_back)  <- main chart + table
+3b who moved on a given day / venue (wallet level drill-down)
+3c inside Monad: Curvance collateral vs lending side, daily (Monad tables). Pharos stays bridge-level (not on Dune).
