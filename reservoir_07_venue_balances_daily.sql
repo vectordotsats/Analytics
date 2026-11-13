@@ -1,7 +1,7 @@
 -- RESERVOIR 07: daily BALANCE per venue (for the balance-over-time chart, not for reading as a table)
 -- Venue = Ethereum protocol (from Dune labels), "Ethereum: wallets", a destination chain, or "Outside" (mint / redeem).
--- Checks: each day sum(net_usd) over all venues ~ 0 ; latest balance Monad ~$62.3M, Pharos ~$23.5M,
---         Ethereum: morpho_blue ~$7.2M, Ethereum: dolomite ~$1.2M, Outside ~ -$94.7M.
+-- Params: days_back (number, e.g. 180), min_venue_usd (number, e.g. 500000; smaller venues fold into 'Other').
+-- Chart: stacked area, x = day, y = balance_usd, group by venue. Check: latest day stack total ~ $94.7M.
 with eid_names (eid, chain) as (
   values (30101,'Ethereum'), (30102,'BNB'), (30106,'Avalanche'), (30110,'Arbitrum'), (30168,'Solana'),
          (30183,'Linea'), (30184,'Base'), (30280,'Sei'), (30319,'Worldchain'), (30320,'Unichain'),
@@ -127,11 +127,17 @@ valued as (
   from running r
   join px p on p.day = r.day and p.contract_address = r.token_address
   group by 1, 2
+),
+ranked as (  -- drop the mint/redeem mirror; find each venue's peak in the window
+  select day, venue, balance_usd,
+         max(balance_usd) over (partition by venue) as peak_usd
+  from valued
+  where day >= current_date - interval '{{days_back}}' day
+    and venue <> 'Outside (mint / redeem)'
 )
-select day, venue,
-       round(inflow_usd, 0) as inflow_usd, round(outflow_usd, 0) as outflow_usd,
-       round(inflow_usd - outflow_usd, 0) as net_usd, round(balance_usd, 0) as balance_usd
-from valued
-where day >= current_date - interval '{{days_back}}' day
-  and (inflow_usd > 0 or outflow_usd > 0 or abs(balance_usd) > 1)
-order by day desc, abs(inflow_usd - outflow_usd) desc
+select day,
+       case when peak_usd >= {{min_venue_usd}} then venue else 'Other' end as venue,
+       round(sum(balance_usd), 0) as balance_usd
+from ranked
+group by 1, 2
+order by 1, 2
