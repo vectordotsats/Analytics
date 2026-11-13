@@ -47,3 +47,13 @@ PLAN CHANGE: step 1c = net bridged per chain (reservoir_03_bridge_by_chain.sql),
 snapshot on the biggest destination chains, then buckets.
 CORRECTION: wsrUSD price is ~1.108 (not ~1.16), so the COALESCE(price,1) bug is a ~10% dip, not 15%.
 Confirmed from user: srUSD and wsrUSD both mint by burning rUSD; no direct srUSD->wsrUSD; Monad TVL is Curvance.
+
+=== STEP 1c RESULT (wsrUSD bridged per LayerZero chain id, Nov 13 2026) ===
+Net on chain adds to ~77.47M = adapter balance. PASS.
+- 30390: 56.24M net (157.6M out, 101.4M back, 904 sends)
+- 30407: 21.20M net (27.4M out, 6.2M back, 90 sends)
+- 30365: 0.03M. Every other chain ~0 net.
+Rotation: Katana(30375?) 29.5M, Plume(30370?) 21.7M, Sei(30280?) 20.9M, World(30319?) 18.5M,
+Bera(30362?) 15.2M, Linea(30183?) 13.8M, Arbitrum(30110?) 10.2M all went out and came fully back.
+Chain id -> name mapping NOT verified. 30390 believed Monad; 30407 unknown.
+Total TVL query corrected: reservoir_tvl_total.sql
