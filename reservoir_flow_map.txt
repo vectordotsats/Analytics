@@ -117,3 +117,8 @@ v2 of 3a: daily prices (forward filled), dense grid so balance exists every day.
 Known artifact: Nov 12 one ~$38.7k conversion shows as 4 rows (wallets->uniswap_v3, uniswap_v3->Redeemed,
 wallets->Redeemed, New mint->wallets). Net is right ($76.6k redeemed). TODO: net mint+redeem across tokens per tx.
 3b = reservoir_08_who_moved.sql (params day, min_usd).
+
+=== STAGE 5: INSIDE MONAD (dashboard launched Nov 14 2026) ===
+5a balances per bucket, chart   -> reservoir_09_inside_monad_balances.sql
+5b who owns the Curvance positions (holders of the cwsrUSD / BorrowableCToken receipt tokens) -> to write
+5c daily from->to moves on Monad -> to write if 5a shows real movement between the two sides
