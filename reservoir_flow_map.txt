@@ -84,3 +84,17 @@ collateral side cwsrUSD $41.5M + BorrowableCToken $20.8M.
 NEXT: Pharos holders (reservoir_05_pharos_holders.sql).
 PHAROS: not indexed on Dune (schema missing). Explorer pharosscan.xyz, wsrUSD 0x4809010926aec940b550D34a46A52739f996D75D.
 Holders = explorer page (manual). Flows = Ethereum bridge side only (reservoir_05_pharos_holders.sql, param chain_eid).
+
+=== STEP 2b RESULT: Pharos (Nov 13 2026) - PASS ===
+Explorer holders: Morpho 21,202,246.84 wsrUSD = 100% (9 holders, rest dust). Matches net bridged 21.20M.
+Who sent it (Ethereum side, eid 30407):
+- 0x086eb9c2b14dd657ae77d07df9115a2f946ce327  net +14.90M (15.78M out, 0.88M back, 20 sends, Nov 2-10)
+- 0xacddac6c77318b615f7f6fb9bb67c6833e9c05f1  net +11.35M (68 sends, Jun 23 - Aug 26)
+- 0x902cc900bfc73b3b75bfce557e45d75e243efb09  net +0.28M (Nov 11)
+Negative rows (~-5.3M total, 6 wallets) = wallets that received wsrUSD back on Ethereum from Pharos without
+ever sending there: exits by a different wallet than the one that went in. Keep them (they are the "what left" side).
+
+=== FULL MAP, $94.7M ===
+Monad / Curvance $62.3M (65.8%) | Pharos / Morpho $23.5M (24.8%) | Ethereum / Morpho $7.2M | Ethereum / Dolomite $1.2M | other $0.5M
+=> ~99% of Reservoir supply sits in 3 lending protocols.
+NEXT: daily in/out per venue; trace where the 6 exit wallets sent wsrUSD after it landed on Ethereum.
