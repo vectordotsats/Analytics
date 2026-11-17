@@ -48,7 +48,7 @@ Work it as if it is live. Do not read any post-mortem until your report is submi
 Pass = 70. Graded against the public post-mortems after submission.
 
 ## Log
-- Start time:
+- Start time: 2026-11-17 16:28 UTC (17:28 Lagos) — ends 19:28 UTC / 20:28 Lagos
 - Hints used:
 - Submitted:
 - Score:
