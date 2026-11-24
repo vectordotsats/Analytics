@@ -23,7 +23,9 @@ Did money LEAVE Horizon, or ROTATE inside it (USCC -> USTB)? And was the exit or
 | Allowlist V4 (proxy) | 0xBcBC2b4FB2AbE1C598C9ea91E0b03338e4728D1f | Superstate docs |
 | Chainlink USCC oracle | 0xAfFd8F5578E8590665de561bdE9E7BAdb99300d9 | Superstate docs |
 | Chainlink USTB oracle | 0x289B5036cd942e619E1Ee48670F98d214E745AAC | Superstate docs |
-| Horizon aToken "RWA USCC" (CANDIDATE) | 0x08b798c40b9ab931356d9ab4235f548325c4cb80 | StakingRewards — confirm via Pool |
+| **Horizon USCC aToken (CONFIRMED)** | **0x08b798c40b9AB931356d9aB4235F548325C4cb80** | Pool.getReserveData(USCC) |
+| Horizon USCC variable debt token | 0xA0Ec4758d806A3F41532C8E97Ea0c85940182B0f | Pool.getReserveData(USCC) |
+| Horizon USCC interest rate strategy | 0x87593272C06f4FC49EC2942eBda0972d2F1Ab521 | Pool.getReserveData(USCC) |
 | Horizon aToken "RWA USDC" (CANDIDATE) | 0x68215b6533c47ff9f7125ac95adf00fe4a62f79e | StakingRewards — confirm via Pool |
 | Horizon contract, asset unknown (CANDIDATE) | 0x4e58a2e433a739726134c83d2f07b2562e8dfdb3 | StakingRewards |
 
@@ -62,6 +64,7 @@ name-of-address. This is not a statistical problem, it is a roll call.
    yield and rotation to USTB is rational. (Hypothesis, unproven.)
 
 ## Status
+- [x] aToken confirmed via Pool.getReserveData (stable debt token is 0x0 = stable rate unused)
 - [ ] 1 ground truth
 - [ ] 2 roll call
 - [ ] 3 rotation chart
