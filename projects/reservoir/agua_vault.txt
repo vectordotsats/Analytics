@@ -187,3 +187,27 @@ WORK LOG
   DOCS GAP: docs.tropicalwater.xyz overview page does NOT cover strategies, yield
   source, rate mechanism, lockup length, fee amounts, caps, chains or risks.
   Vector has team access -> get those answers first-hand; that IS the moat.
+
+2026-11-26  ALLOCATION TABLE (app, "show idle" OFF). 16 positions, 7 chains.
+  allocated $18,783,400 vs TVL $20,083,708 -> idle/unshown $1,300,307 (6.5%)
+  BY PROTOCOL  Morpho Blue 9.48M (50.5%) | Curvance 5.37M (28.6%)
+               Aave V3 2.38M | Aave V4 1.22M | Tydro 244k | Dolomite 95k
+  BY CHAIN     Ethereum 5.43M (28.9%) | Monad 5.37M (28.6%) | Robinhood 3.74M (19.9%)
+               Pharos 2.14M | Arbitrum 1.60M | Arc 261k | Ink 244k
+  KEY RATIOS   wsrUSD is the collateral in $7.79M = 41.5% of allocations, 38.8% of TVL
+               91.5%+ LLTV markets = $7.34M = 39.1% of allocations
+               non-Ethereum = 71.1% of allocations
+               top 5 positions = 59.2% of allocations
+  READING: this is not an exotic strategy, it is stablecoin CARRY - supplying the
+  loan asset into lending markets against yield-bearing stable collateral
+  (sUSDe, syrupUSDG, USDe, mGLO) at high LLTV. Matches the contract table name
+  agua_global_carry_evt_*. Morpho market naming = collateral/loan, so the vault
+  is the LENDER in those rows. NEEDS CONFIRMING with the team.
+  REFLEXIVITY FINDING: ~41% of the book lends against wsrUSD, Reservoir's own
+  savings token. USDC depositors are, at ~39% of TVL, funding leverage on
+  Reservoir's own asset. Honest, defensible, but must be stated in any writeup.
+  EXPLAINS THE $1.90: capital is deployed across 16 positions on 7 chains,
+  4 of them new/thin (Pharos, Monad, Robinhood, Arc, Ink). Instant exit has
+  nothing to draw on; the 5-day standard queue is the real redemption path.
+  FEE CONFLICT: Vector says instant redeem fee = 1%. Sept contract work recorded
+  early redemption fee = 5% of redeemed value. UNRESOLVED - check the contract.
