@@ -211,3 +211,37 @@ WORK LOG
   nothing to draw on; the 5-day standard queue is the real redemption path.
   FEE CONFLICT: Vector says instant redeem fee = 1%. Sept contract work recorded
   early redemption fee = 5% of redeemed value. UNRESOLVED - check the contract.
+
+2026-11-26  CORRECTIONS + STRUCTURAL FINDING (from Vector, team-side).
+  FEE RESOLVED: instant redemption fee = 1%, stated on the app. The Sept note in
+  this file recording 5% is either stale or was wrong -> treat 1% as current.
+  Standard redemption = 5 days, 0 fee.
+  $1.3M idle is a DELIBERATE undeployed buffer, not a measurement gap.
+  Morpho collateral/loan reading CONFIRMED - no need to ask the team.
+  WHY THE VAULT LENDS INTO RESERVOIR MARKETS (intent, team-side): it was the
+  point. Reservoir previously launched vaults on Upshift and Fusion to route
+  USDC into its own markets for liquidity + boosted reward yield. Those venues
+  charged high launch fees, so the vault was rebuilt in-house with direct user
+  deposits. Same purpose, no middleman. This is DESIGN, not drift.
+  -> Writeup framing: not "conflict", but "correlated risk". Intent is not what
+     a depositor prices; correlation is. 41% of the book shares a risk factor
+     with rUSD/wsrUSD itself. State it as structure, not as a flaw.
+
+  *** CAPITAL PATH ASYMMETRY (the best structural finding so far) ***
+  Deposits and redemptions happen on Ethereum and Monad ONLY.
+  Allocations run across 7 chains: ETH, Monad, Robinhood, Pharos, Arbitrum,
+  Arc, Ink. Money enters through 2 doors, works on 7, must come back to 2.
+  -> THIS is what the 5-day standard redemption is actually paying for:
+     unwind a lending position on a thin chain + bridge back to a door chain.
+     The 5 days is not arbitrary and is not padding. Good, honest explanation
+     and far stronger content than treating the queue as a red flag.
+
+  OPEN QUESTION FOR THE TEAM (highest value, unresolved):
+  if $1.3M sits idle as buffer, why does the app show Available for Instant
+  Redeem = $1.90 (ETH $0.66 / Monad $1.24)? Three candidates:
+    a) buffer is held outside the contract path instant redemption draws on
+       (e.g. allocator 0x086eb9C2..., not the vault itself)
+    b) instant redeem is served by the Reservoir liquidity wallet
+       0x3063C5907FAa10c01B242181Aa689bEb23D2BD65, which is currently empty
+    c) UI/accounting bug
+  Until this is answered the vault markets a 1% instant exit it cannot honour.
