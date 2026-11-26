@@ -288,3 +288,46 @@ WORK LOG
   TODO NEXT: allocator balances on Monad / Robinhood / Pharos / Arbitrum / Arc /
   Ink to compute gross vs net per venue, then a true gross-exposure and
   blended-leverage number for the whole vault.
+
+2026-11-27  ALLOCATOR SWEEP - GROSS EXPOSURE CONFIRMED ON TWO CHAINS.
+  Allocator 0x086eb9C2B14dD657ae77D07dF9115A2F946CE327 (EOA, same addr both chains)
+
+  ETHEREUM   aEthUSDe            23,779,887.49   supplied
+             variableDebtEthUSDC 21,364,013.80   borrowed
+             net equity          ~2,415,873      (app shows $2.38M)
+  MONAD      cwsrUSD             23,795,537.49   supplied to Curvance
+             WMON                     9,391.42
+             debt                 NOT a token balance - Curvance tracks it
+                                  internally, so it cannot be read from balances
+             app net for Curvance Monad rows = $5,369,650
+             -> implied debt ~ (23.80M x wsrUSD price) - 5.37M
+                at wsrUSD $1.00  debt ~$18.4M, leverage ~4.4x
+                at wsrUSD $1.15  debt ~$22.0M, leverage ~5.1x
+                wsrUSD price NOT yet verified - get it before quoting either
+
+  RUNNING TOTAL (2 of 7 chains): gross ~$47.6M against ~$7.75M of net equity.
+  Five chains still unmeasured (Robinhood, Pharos, Arbitrum, Arc, Ink = $7.99M
+  net). If leverage is similar there, whole-vault gross plausibly $70-110M
+  against $20.08M of user deposits.
+
+  *** REFLEXIVITY CONFIRMED, AND IT IS THE STRONGER VERSION ***
+  The Monad leg is 23.8M units of wsrUSD - RESERVOIR'S OWN SAVINGS TOKEN -
+  posted as collateral. The vault is not lending to wsrUSD holders. The vault
+  IS the levered wsrUSD holder. My earlier "vault is the lender" read was wrong
+  on both chains checked so far. Agua's risk and rUSD/wsrUSD's risk are the
+  same risk, amplified ~4-5x.
+
+  ODDITY WORTH CHECKING: Ethereum gross 23,779,887 and Monad gross 23,795,537
+  are within 0.07% of each other. Deliberate symmetric sizing, or the same
+  capital appearing twice via the OFT bridge? Ask the team.
+
+  LIQUIDITY WALLET 0x3063C5907FAa10c01B242181Aa689bEb23D2BD65 IS DRAINED.
+  Ethereum total ~$192 (ETH $189 + dust across ~12 tokens). In Sept this wallet
+  was the market maker behind 99.99% of EarlyRedemption volume. It is empty now.
+  -> That is the answer to "why is instant redeem $1.90": the backstop was never
+     the vault's own buffer, it was this wallet, and nobody has refilled it.
+     Candidate (b) from 2026-11-26 confirmed; (a) and (c) dead.
+
+  STILL OPEN: the $1.3M idle buffer is not at either vault contract, not at the
+  liquidity wallet, and not sitting as stablecoins at the allocator on ETH or
+  Monad. Location unknown.
