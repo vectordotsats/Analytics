@@ -245,3 +245,46 @@ WORK LOG
        0x3063C5907FAa10c01B242181Aa689bEb23D2BD65, which is currently empty
     c) UI/accounting bug
   Until this is answered the vault markets a 1% instant exit it cannot honour.
+
+2026-11-26  ON-CHAIN: DEPOSIT PATH + THE LEVERAGE FINDING. *** BIG ***
+  CONFIRMED - "Available for Instant Redeem" = the vault contract's RAW USDC
+  balance, chain by chain, to the cent:
+    ETH vault  0xa98b4a70e17e55045cde4972b95bc2e8cec22a0f  USDC 0.655321  (app $0.66)
+    Monad vault 0x2abc42250154752273a4560e875c858623f83ecc USDC 1.243608  (app $1.24)
+  -> not a UI bug. The $1.3M idle buffer is NOT held at either vault contract,
+     so it is not instantly redeemable wherever it is. Still to locate.
+  ETH vault also holds 246,727.58 aguaUSDCgc of ITSELF = shares escrowed in the
+  5-day standard redemption queue (~$250k pending exit). Worth tracking as a
+  demand-for-exit series.
+
+  ALLOCATOR 0x086eb9C2B14dD657ae77D07dF9115A2F946CE327 is an EOA, not a contract.
+  Ethereum balances:
+    aEthUSDe              23,779,887.49   (Aave V3 supplied USDe)
+    variableDebtEthUSDC   21,364,013.80   (Aave V3 USDC debt)
+    net equity            ~2,415,873
+  App shows that row as "USDe/USDC  Aave V3  Ethereum  $2.38M".
+
+  *** THE APP'S "ALLOCATION" COLUMN IS NET EQUITY, NOT GROSS EXPOSURE. ***
+  $2.38M of user money is running ~$23.8M of gross position. Leverage ~9.8x.
+  This is the actual mechanism behind "Global Carry": supply a yield-bearing
+  stable, borrow USDC against it, loop. The 91.5% LLTV cluster I flagged earlier
+  is the tell - 91.5% LLTV caps out near 11.8x.
+
+  CORRECTION TO MY OWN EARLIER READ IN THIS FILE: I wrote that the vault is the
+  LENDER in the collateral/loan rows. On Aave V3 it is demonstrably the BORROWER
+  - levered long USDe funded by USDC debt. Do NOT generalise to the Morpho Blue
+  and Curvance rows yet; check each the same way (balances of the allocator on
+  that chain) before publishing. If the wsrUSD rows are loops too, then the
+  vault is levered LONG wsrUSD rather than lending against it, and the
+  correlated-risk point gets materially stronger, not weaker.
+
+  WHY THIS MATTERS FOR THE WRITEUP: a reader seeing "$20M TVL, allocations
+  across 16 positions" pictures a diversified lending book. The on-chain
+  reality on the one row verified so far is a ~10x levered basis trade. That is
+  not a scandal - it is a normal carry structure and it is how 10% fixed gets
+  paid - but it is invisible on the app, and explaining it is exactly the kind
+  of work that earns the reader's trust.
+
+  TODO NEXT: allocator balances on Monad / Robinhood / Pharos / Arbitrum / Arc /
+  Ink to compute gross vs net per venue, then a true gross-exposure and
+  blended-leverage number for the whole vault.
