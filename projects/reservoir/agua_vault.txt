@@ -142,3 +142,48 @@ WORK LOG
   BUILT/READY: metric #1 (deposit activity, done); share price + APY (rate-driven,
    query_8647489); Track1 user net TVL (Reservoir excluded); Track2 Reservoir
    wallet movement. Point-in-time surplus needs current app TVL (moving target).
+
+2026-11-26  APP SNAPSHOT (app.reservoir.xyz/vaults/aguaUSDCgc) + CONTENT PIVOT.
+  Numbers on the page today:
+    APY 10.00% | TVL $20,083,707.68 | Standard redemption 5 days, 0 fee
+    Available to Mint $4,916,292.23  -> Ethereum $3,086,172.33 of $14,000,000
+                                        Monad    $1,830,119.91 of $11,000,000
+    Available for Instant Redeem $1.90 -> Ethereum $0.66, Monad $1.24
+  DERIVED (checks out to 8 cents, so the cap reading is right):
+    minted ETH   = 14.0M - 3.086M = $10,913,827.67
+    minted Monad = 11.0M - 1.830M = $ 9,169,880.09
+    total        = $20,083,707.76 vs TVL $20,083,707.68
+  WHAT CHANGED SINCE 13 SEP:
+    TVL $12.1M -> $20.08M (+66%)
+    Monad is no longer bridge-only: ~$9.17M, 46% of the vault
+    Hard cap $25M across both chains -> 80% full
+    Instant redeem liquidity is effectively ZERO ($1.90). In Sept the Reservoir
+    liquidity wallet 0x3063C590... was providing instant in/out; it is not now.
+  -> EVERYTHING IN THIS FILE FROM SEPT NEEDS RE-RUNNING BEFORE PUBLISHING.
+
+  PURPOSE CHANGE: this stops being an internal dashboard and becomes PUBLIC
+  WRITING, Vector under his own name, disclosing he works at Reservoir.
+  Template (from punkquidity/infiniFi thread, which earns paid slots on rigour):
+    1 where the yield actually comes from
+    2 how it compares to the obvious alternative
+    3 the breakdown, named and quantified
+    4 can people get out, how fast
+    5 the one thing that would break it, and when we find out
+  Section 5 is the credibility test and the one an employee is tempted to drop.
+
+  ANGLES VECTOR ALREADY OWNS (from Sept work, unpublished):
+   - FIXED RATE, NOT A FLOAT. Vault credits a set per-second rate (RateUpdated,
+     1e27). 15% at genesis -> 10% on 2026-06-15, flat since. Most vaults pay what
+     they earn; this one promises a number. That distinction is the whole piece.
+   - THE SPREAD. App TVL vs net deposited left a ~$2.5M wedge in Sept = retained
+     strategy surplus. Strategies earn more than 10%; protocol keeps the rest.
+     Honest, interesting, and explains why the rate can be held flat.
+   - USERS ARE 100% STICKY. 99.99% of EarlyRedemption volume was the protocol's
+     own liquidity wallet; real user early exits totalled $2.48.
+   - WHALE BASE. Single tickets $250K-$2M. Not a retail product.
+   - THE RISK SECTION WRITES ITSELF: $20M of deposits, $1.90 of instant liquidity,
+     5-day standard queue, 80% of cap used, strategy returns not on-chain
+     observable. State it plainly or the piece is marketing.
+  DOCS GAP: docs.tropicalwater.xyz overview page does NOT cover strategies, yield
+  source, rate mechanism, lockup length, fee amounts, caps, chains or risks.
+  Vector has team access -> get those answers first-hand; that IS the moat.
