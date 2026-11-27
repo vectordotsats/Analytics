@@ -383,3 +383,17 @@ WORK LOG
   PUBLIC COVERAGE: a web search for the vault / Tropical Water Management
   returns NOTHING on-topic. No articles, no threads, no coverage. $20M vault,
   zero written about it. That is the whole opportunity.
+
+2026-11-27  MARKETING BRIEF BUILT (Claude doc "Agua Vault - Analyst Briefing").
+  https://claude.ai/artifact/M2CP8Dfy2fDMjXrgT48dvH
+  Benchmark (pigi, 48 non-AMM USDC vaults >= $10M, $4.73B; 30d APR -> APY daily comp):
+    median 5.06% | deposit-weighted 4.92% | max Arkis 10.17% (10 holders, floating 8.7-12.0%)
+    Agua 10.00% fixed = #2 of 49. Multiples: T-bill 4.26% x2.35 | DeFi base 4.06% x2.46
+    | median x1.97 | wtd x2.03 | Syrup x1.93 | Gauntlet Prime Base x1.90 | Spark Savings x2.63
+  CORRECTION to 2026-11-26 note: "every vault >5.9% is D/F" is wrong on the wider set -
+    KPK USDC Yield is band B at 6.67%. Of 8 vaults >6.5%: 1 B, 3 D/F, 4 unrated.
+  Rate confirmed on-chain: RateUpdated 15 Jun 2026, tx 0x542c858b...1051,
+    4.4318e18 -> 3.0223e18 per sec (1e27) = 15.00% -> 10.00% APY. Only change. 165 days flat.
+  Rate stability (daily APY): Gauntlet Prime Base 4.1-9.2 | Steakhouse HY ETH 4.8-15.1
+    | Syrup 4.6-5.7 | Arkis 8.7-12.0 | DeFi base (30d) 2.9-5.8 | Agua 10.00 flat.
+  Bitquery plan expired -> holder count not refreshed.
