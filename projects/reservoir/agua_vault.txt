@@ -331,3 +331,55 @@ WORK LOG
   STILL OPEN: the $1.3M idle buffer is not at either vault contract, not at the
   liquidity wallet, and not sitting as stablecoins at the allocator on ETH or
   Monad. Location unknown.
+
+2026-11-27  FULL ALLOCATOR SWEEP COMPLETE. wsrUSD price = $1.1106 (Vector).
+
+  MEASURED (positions readable as token balances)
+  chain      venue      gross supplied        debt              net      lev
+  Ethereum   Aave V3    $23,779,887 aEthUSDe  $21,364,014 USDC  $2.42M   9.84x
+  Monad      Curvance   $26,427,324 cwsrUSD   ~$21,057,674 impl  $5.37M   4.92x
+             (23,795,537.49 cwsrUSD x 1.1106)
+  Ink        Tydro      $2,262,843 syrupUSDT  $2,018,463 USDT   $244k    9.26x
+             (implied syrupUSDT px $1.1527, derived from app net - checks out)
+  TOTAL MEASURED        $52,470,055            ~$44,440,151      $8.03M   6.53x
+
+  NOT MEASURABLE FROM BALANCES - Morpho Blue keeps positions in an internal
+  struct, not as tokens. Arbitrum allocator wallet = $18 total yet the app
+  shows a $1.6M Morpho position there, which proves the point.
+  Unmeasured net: Robinhood $3.74M, Pharos $2.14M, Ethereum Morpho $1.99M,
+  Arbitrum $1.60M, Aave V4 ETH $955k, Arc $261k, Dolomite $95k = $10.75M.
+  -> to read these, call Morpho Blue position(marketId, allocator) per market
+     or replay Supply/Borrow/SupplyCollateral events. Pharos is indexed by
+     NEITHER Herd NOR Bitquery - no tool here can see it.
+
+  EXTRAPOLATION (clearly label as such, do NOT publish as measured):
+  if the unmeasured $10.75M runs at the measured 6.53x blended leverage,
+  whole-vault gross ~ $122.7M on $20.08M of deposits = ~6.1x user capital.
+  THE MEASURED PART IS $52.5M ON $8.0M. That number is solid. Use it.
+
+  IDLE BUFFER - PARTLY FOUND. Loose, undeployed tokens at the allocator:
+    Robinhood  mGLO       113,260.44  = $115,277.98
+    Robinhood  syrupUSDG  198,000     = $202,031.72
+    Robinhood  USDe         7,072.50  =   $7,068.22
+    + dust (vault USDC both chains, ETH gas, Arc, Arbitrum)
+    TOTAL LOOSE $324,417  <- this is the "a bit above 300K" Vector saw
+    app idle = $1,300,307 -> $975,890 STILL UNLOCATED (Pharos is the prime
+    suspect, since nothing here can see it)
+
+  BENCHMARK (Pigi, USDC lending vaults > $20M TVL, AMM pools excluded, n=27)
+    min 3.69% | median 4.64% | mean 4.96% | max 8.07%
+    AGUA 10.00% is above ALL 27.
+    Top payers and their risk bands:
+      RockawayX USDC Yield        8.07%  band D  $34.1M
+      Steakhouse High Yield ETH   6.58%  band F  $41.4M
+      Gauntlet USDC Frontier      6.05%  band F  $23.0M
+      Spark Prime USDC 1          6.04%  unrated $20.6M
+      Steakhouse HY Base bbqUSDC  5.98%  band F  $25.1M
+    PATTERN: every vault in the set paying over 5.9% is rated D or F.
+    -> Vector's "10% is above a large portion of market vaults" is an
+       UNDERSTATEMENT. It is above all of them. The piece should say so AND
+       explain what is being taken on to earn it, or it is just marketing.
+
+  PUBLIC COVERAGE: a web search for the vault / Tropical Water Management
+  returns NOTHING on-topic. No articles, no threads, no coverage. $20M vault,
+  zero written about it. That is the whole opportunity.
