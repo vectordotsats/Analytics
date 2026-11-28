@@ -1,22 +1,22 @@
 # Methodology v0.1 (2026-11-28)
 
 ## 1. Universe (v1)
-- Underlying asset: USDC or USDT. Token addresses read from Dune's price list
+- Underlying asset: USDC only (USDT added once the main USDC vaults are done). Token address read from Dune's price list
   (prices.tokens), never from a symbol alone (fake "USDC" tokens exist).
 - Chain: Ethereum only.
 - Size: TVL >= $5M on the measurement day.
 - Vault type in v1: standard ERC-4626 vaults only. Non-standard vaults (Agua, primeUSD)
   come in v1.1 through a small registry.
-- Out: AMM pools, vaults whose underlying is not USDC/USDT (sUSDe, USDS etc. wait for v2).
+- Out: AMM pools, vaults whose underlying is not USDC/USDT (USDT, sUSDe, USDS etc. come later).
 
 ## 2. Discovery (no hand-made vault list)
 A contract is a candidate vault if it emits the ERC-4626 Deposit event AND, in the same
-transaction, receives a USDC/USDT transfer equal to the event's `assets` amount.
+transaction, receives a USDC transfer equal to the event's `assets` amount.
 That second check proves which asset the vault takes, from on-chain data alone.
 
 ## 3. Share price
 price_per_share = assets / shares, taken from Deposit and Withdraw events,
-each side scaled by its own decimals (shares often 18, USDC/USDT 6).
+each side scaled by its own decimals (shares often 18, USDC 6).
 Daily price = last observation of the day, carried forward on days with no events.
 
 ## 4. Rate (realized, not advertised)
