@@ -7,7 +7,7 @@
 - Size: TVL >= $5M on the measurement day.
 - Vault type in v1: standard ERC-4626 vaults only. Non-standard vaults (Agua, primeUSD)
   come in v1.1 through a small registry.
-- Out: AMM pools, vaults whose underlying is not USDC/USDT (USDT, sUSDe, USDS etc. come later).
+- Out: AMM pools, vaults whose underlying is not USDC (USDT, sUSDe, USDS etc. come later).
 
 ## 2. Discovery (no hand-made vault list)
 A contract is a candidate vault if it emits the ERC-4626 Deposit event AND, in the same
