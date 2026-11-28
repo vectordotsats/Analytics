@@ -41,3 +41,5 @@ Start with the brief: `drills/01_resolv_usr_brief.md`.
 - Parameters over edits: `{{wallets}}`, `{{start}}`, `{{days_back}}` so a query
   is reused rather than rewritten.
 - Every project log states what is verified and what is not.
+
+Stablecoin vault screener moved to its own repo: https://github.com/vectordotsats/ashborne
